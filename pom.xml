@@ -8,24 +8,12 @@
         <version>4.1.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>Prog2</groupId>
+    <groupId>prog2</groupId>
     <artifactId>servicio-catalogo</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>servicio-catalogo</name>
-    <description>servicio-catalogo</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <description>servicio-catalogo</description> “Catálogo de profesionales sincronizado con la cátedra”.
+
     <properties>
         <java.version>21</java.version>
     </properties>
