@@ -12,7 +12,7 @@
     <artifactId>servicio-catalogo</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>servicio-catalogo</name>
-    <description>servicio-catalogo</description> “Catálogo de profesionales sincronizado con la cátedra”.
+    <description>Catálogo de profesionales sincronizado con la cátedra</description>
 
     <properties>
         <java.version>21</java.version>
