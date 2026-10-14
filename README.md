@@ -21,36 +21,62 @@ El resto del sistema (servicio de Turnos, app y documentación) vive en reposito
 | Maven (wrapper `mvnw`) | Compilación y dependencias |
 | PostgreSQL 17 | Base de datos |
 | Flyway | Migraciones del esquema |
+| Docker Compose | Base de datos local |
 | Testcontainers | Pruebas contra un PostgreSQL real y temporal |
 | Lombok | Menos código repetitivo |
 
 ## Requisitos
 
 - JDK 21.
-- PostgreSQL disponible para ejecutar el servicio.
-- Docker en marcha para las pruebas.
+- Docker con Docker Compose (para la base local y para las pruebas).
 - No hace falta instalar Maven: `./mvnw` descarga la versión correcta. En Windows se usa `mvnw.cmd`.
 
 ## Configuración
 
-El servicio toma los datos de conexión de estas variables de entorno:
+Copiar el archivo de ejemplo y completar las contraseñas:
+
+```bash
+cp .env.example .env
+```
 
 | Variable | Para qué sirve |
 |---|---|
-| `SPRING_DATASOURCE_URL` | URL de conexión, por ejemplo `jdbc:postgresql://localhost:5432/catalogo` |
+| `POSTGRES_DB` | Nombre de la base del catálogo |
+| `POSTGRES_USER` | Usuario de esa base |
+| `POSTGRES_PASSWORD` | Contraseña de ese usuario |
+| `DB_PORT` | Puerto local donde se publica PostgreSQL (por defecto `5433`) |
+| `SPRING_DATASOURCE_URL` | URL de conexión del servicio, por ejemplo `jdbc:postgresql://localhost:5433/catalogo` |
 | `SPRING_DATASOURCE_USERNAME` | Usuario con el que se conecta el servicio |
-| `SPRING_DATASOURCE_PASSWORD` | Contraseña de ese usuario |
+| `SPRING_DATASOURCE_PASSWORD` | Contraseña con la que se conecta el servicio |
 
-No hay datos de conexión en `application.properties`.
+- El puerto de `SPRING_DATASOURCE_URL` tiene que coincidir con `DB_PORT`.
+- El puerto por defecto es `5433` para no chocar con una instalación local de PostgreSQL, que usa `5432`.
+- `.env` no se versiona. Docker Compose lo lee solo; Spring Boot no, por eso se carga a mano al ejecutar el servicio (ver más abajo).
+
+## Base de datos con Docker Compose
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Levanta PostgreSQL con los datos de `.env`. Los datos se guardan en un volumen, así que se conservan al detener o recrear el contenedor.
+
+```bash
+docker compose down        # detiene el contenedor y conserva los datos
+docker compose down -v     # además borra los datos
+```
+
+Cambiar las contraseñas en `.env` no modifica las de una base ya creada: hay que borrar el volumen o cambiarlas dentro de PostgreSQL.
 
 ## Ejecutar el servicio
 
-Con PostgreSQL en marcha, definir las variables y ejecutar:
+Con la base levantada, cargar las variables y ejecutar:
 
 ```bash
-export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/catalogo
-export SPRING_DATASOURCE_USERNAME=<usuario>
-export SPRING_DATASOURCE_PASSWORD=<contraseña>
+set -a
+. ./.env
+set +a
 ./mvnw spring-boot:run
 ```
 
@@ -72,7 +98,7 @@ La respuesta esperada es `{"status":"UP"}`: el servicio está en marcha y llega 
 ./mvnw verify
 ```
 
-Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un PostgreSQL temporal con Testcontainers, por lo que Docker tiene que estar en marcha. No usan la base de desarrollo.
+Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un PostgreSQL temporal con Testcontainers, por lo que Docker tiene que estar en marcha. No usan `.env` ni la base de desarrollo.
 
 ## Base de datos y migraciones
 
@@ -103,6 +129,7 @@ El dominio, las entidades JPA y los DTO son clases distintas, conectadas con map
 | PostgreSQL | Base relacional completa y de uso muy extendido |
 | Flyway | Migraciones en archivos SQL numerados, simples de revisar y repetir |
 | Hibernate en modo `validate` | El esquema tiene un único responsable y queda versionado |
+| Puerto local 5433 | Evita el choque con un PostgreSQL local en el 5432 |
 | Pruebas con Testcontainers | Se prueba contra PostgreSQL real, no contra una base simulada |
 | Configuración por variables de entorno | No hay contraseñas ni direcciones en el repositorio |
 | Un solo endpoint de Actuator, sin detalles | No se expone información interna del servicio |
