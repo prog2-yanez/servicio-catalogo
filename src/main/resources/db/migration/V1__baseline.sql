@@ -1,0 +1,3 @@
+-- Migración inicial del servicio de catálogo.
+-- No crea tablas: solo confirma que Flyway está conectado a la base.
+-- Las tablas del catálogo se agregan en migraciones posteriores.
