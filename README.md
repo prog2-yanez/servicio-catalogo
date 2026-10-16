@@ -135,18 +135,33 @@ Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un Po
 
 ## Organización del código
 
-Arquitectura hexagonal: las reglas del negocio no dependen de Spring, de la base ni de Kafka.
+Arquitectura hexagonal: las reglas del negocio no dependen de Spring, de la base ni de Kafka. El código del catálogo está en `prog2.serviciocatalogo.catalogo`:
 
 ```
-domain/model            entidades y reglas del negocio
-application/usecases    casos de uso (una clase por acción del servicio)
-application/port        interfaces que el núcleo ofrece (in) y necesita (out)
-infrastructure/web      controllers y DTO
-infrastructure/persistence   entidades JPA y repositorios
-infrastructure/messaging     integración con Kafka
+catalogo/
+├── domain/
+│   ├── model             categorías, profesionales, horarios semanales y versión del catálogo
+│   └── ports             interfaces que el núcleo ofrece (in) y necesita (out)
+├── application/
+│   └── usecases          casos de uso, una clase por acción del servicio
+└── infrastructure/
+    ├── persistence       entidades JPA, repositorios Spring Data y mappers
+    ├── web               controllers y DTO
+    └── messaging         integración con Kafka
 ```
 
-El dominio, las entidades JPA y los DTO son clases distintas, conectadas con mappers.
+El dominio, las entidades JPA y los DTO son clases distintas, conectadas con mappers. El dominio usa `record` de Java y no importa nada de Spring ni de JPA.
+
+### Base de datos
+
+| Tabla | Contenido |
+|---|---|
+| `categoria_profesional` | Categorías de profesionales |
+| `profesional` | Profesionales, con su categoría |
+| `horario_semanal` | Franjas de atención semanales de cada profesional |
+| `version_catalogo` | Versión del catálogo aplicada localmente (una sola fila) |
+
+Los IDs son los de la cátedra y las bajas son lógicas (`habilitado = false`).
 
 ## Decisiones técnicas
 
