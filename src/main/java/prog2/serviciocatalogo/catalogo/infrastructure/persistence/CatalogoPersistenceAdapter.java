@@ -1,9 +1,11 @@
 package prog2.serviciocatalogo.catalogo.infrastructure.persistence;
 
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 import prog2.serviciocatalogo.catalogo.domain.model.SnapshotCatalogo;
 import prog2.serviciocatalogo.catalogo.domain.model.VersionCatalogo;
 import prog2.serviciocatalogo.catalogo.domain.ports.out.CatalogoRepository;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.entity.VersionCatalogoEntity;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.CategoriaProfesionalMapper;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.HorarioSemanalMapper;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.ProfesionalMapper;
@@ -42,6 +44,11 @@ public class CatalogoPersistenceAdapter implements CatalogoRepository {
         this.profesionalMapper = profesionalMapper;
         this.horarioMapper = horarioMapper;
         this.versionMapper = versionMapper;
+    }
+
+    @Override
+    public Optional<VersionCatalogo> obtenerVersion() {
+        return versionRepository.findById(VersionCatalogoEntity.ID_UNICO).map(versionMapper::aDominio);
     }
 
     // Se borra de las tablas hijas a la padre y se inserta al revés para respetar las claves foráneas.
