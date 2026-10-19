@@ -36,7 +36,8 @@ public class CatedraRestAdapter implements CatedraClient {
                         throw new CatedraNoDisponibleException("HTTP " + resp.getStatusCode().value(), null);
                     })
                     .body(SnapshotResponse.class);
-        } catch (RestClientException e) {
+        } catch (RestClientException | IllegalArgumentException e) {
+            // IllegalArgumentException aparece cuando la URL de la cátedra no está configurada.
             // No se encadena la excepción original porque su mensaje incluye la URL de la cátedra.
             throw new CatedraNoDisponibleException(e.getClass().getSimpleName(), null);
         }

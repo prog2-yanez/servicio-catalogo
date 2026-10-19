@@ -119,6 +119,14 @@ class CatedraRestAdapterTests {
                 .doesNotContain(JWT);
     }
 
+    @Test
+    void traduceUnaUrlSinConfigurarANoDisponible() {
+        CatedraRestAdapter sinUrl = new CatedraRestAdapter(RestClient.builder().baseUrl("").build());
+
+        assertThatThrownBy(sinUrl::obtenerSnapshot)
+                .isInstanceOf(CatedraNoDisponibleException.class);
+    }
+
     private static final String SNAPSHOT_EJEMPLO = """
             {
               "snapshotVersion": 7,
