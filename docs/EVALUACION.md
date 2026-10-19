@@ -3,13 +3,13 @@
 
 > Documento **generado automáticamente** por la cátedra de Programación II (UM): RepoSense + análisis de calidad de **7 dimensiones**. **No editar a mano**: se regenera en cada evaluación.
 > Rama evaluada: `main`. Análisis **heurístico** (regex + métricas) + build: es una criba para orientar la revisión, **no una nota**. La **documentación** del repositorio no se evalúa.
-> Generado: 2026-10-17.
+> Generado: 2026-10-19.
 
 ## 1. Veredicto
 
 | Aspecto | Resultado |
 |---|---|
-| Índice de calidad | **53/100** |
+| Índice de calidad | **58/100** |
 | Tipo de repositorio | `backend` |
 | Build (`mvnw verify` / `gradlew check`) | OK |
 | Código (LOC) | 89 |
@@ -17,7 +17,9 @@
 | Clases | 6 |
 | Código dentro de clases (%POO) | 53% |
 | Funciones fuera de clases | 0 |
-| Duplicación | 9.0% |
+| Duplicación (puerta) | 0.0% |
+| Duplicación lógica | 0.0% |
+| Duplicación de boilerplate | 0.0% |
 | Cobertura | 33% |
 | Tope duro aplicado a D1 | `POO_BAJO` → D1 ≤ 60 |
 
@@ -30,11 +32,11 @@ Criterios de la cátedra (`CRITERIOS-CALIDAD.md`): **Aprobar** se juega con el p
 | Semáforo | Resultado |
 |---|---|
 | Aprobar (`estandar`) | **no cumple** — 7/11 |
-| Destacar (`exigente`) | **no cumple** — 5/11 |
+| Destacar (`exigente`) | **no cumple** — 6/11 |
 
 **Para aprobar, falta cumplir:** Cobertura
 
-**Para destacar, falta cumplir:** POO; Duplicación; Cobertura
+**Para destacar, falta cumplir:** POO; Cobertura
 
 ## 3. Autoría (RepoSense)
 
@@ -50,7 +52,7 @@ Cada dimensión indica **qué mide**, **por qué importa** y **tu resultado**. C
 
 | Dimensión | Peso | Puntaje |
 |:--|--:|--:|
-| **D1** Diseño OO, SOLID y patrones (20%) | 20% | 37 |
+| **D1** Diseño OO, SOLID y patrones (20%) | 20% | 60 |
 | **D2** Arquitectura hexagonal — backend (15%) | 15% | 36 |
 | **D3** Frontend KMP: MVVM y buenas prácticas (10%) | 10% | N/A |
 | **D4** Integración y contrato (10%) | 10% | 0 |
@@ -62,11 +64,7 @@ Cada dimensión indica **qué mide**, **por qué importa** y **tu resultado**. C
 
 - **Qué mide:** Métricas orientadas a objetos (clases, métodos, campos, cohesión, acoplamiento, herencia) y proxies de SOLID, más patrones de diseño.
 - **Por qué importa:** El eje de la materia es el buen uso de la POO y su arquitectura: un diseño con clases claras y poco acopladas es más fácil de entender, probar y cambiar.
-- **Tu resultado:** **37/100**
-- **Para investigar la causa:**
-    - ¿Se pensó el modelo de clases antes de codificar o se agrupó después?
-    - ¿Qué clases concentran muchas responsabilidades a la vez?
-    - ¿Los colaboradores llegan como parámetros o se crean por dentro?
+- **Tu resultado:** **60/100**
 
 ### D2. Arquitectura hexagonal — backend (15%)
 
@@ -114,9 +112,6 @@ Cada dimensión indica **qué mide**, **por qué importa** y **tu resultado**. C
 
 El análisis encontró las siguientes señales (archivo, sin número de línea a propósito):
 
-**duplicación** (1)
-- duplicación de bloques: 9.0% del código
-
 **hexagonal** (3)
 - falta domain (hexagonal)
 - falta ports/in (hexagonal)
@@ -131,7 +126,7 @@ xychart-beta
     title "Índice de calidad a lo largo de los commits"
     x-axis ["83d3d53", "99beebb", "e503b78", "26112b9", "1a1ee17"]
     y-axis "Índice" 0 --> 100
-    line [0, 15, 37, 42, 45]
+    line [0, 15, 37, 42, 50]
 ```
 
 | # | Fecha | Commit | Autor | LOC | Índice | %POO | Duplic. | Sueltas |
@@ -140,7 +135,7 @@ xychart-beta
 | 2 | 2026-09-10 | `99beebb` | Ing. Daniel Quinteros | 0 | 15 | 0% | 0.0% | 0 |
 | 3 | 2026-10-09 | `e503b78` | Guadalupe Yañez | 41 | 37 | 54% | 0.0% | 0 |
 | 4 | 2026-10-12 | `26112b9` | Guadalupe Yañez | 41 | 42 | 54% | 0.0% | 0 |
-| 5 | 2026-10-15 | `1a1ee17` | Guadalupe Yañez | 89 | 45 | 53% | 9.0% | 0 |
+| 5 | 2026-10-15 | `1a1ee17` | Guadalupe Yañez | 89 | 50 | 53% | 0.0% | 0 |
 
 ---
 _Informe generado por la cátedra. Las dimensiones y umbrales corresponden a `calidad.py` (perfil `exigente`); el semáforo, a `CRITERIOS-CALIDAD.md`. La documentación del repositorio no se evalúa. Ante dudas, revisá el archivo señalado._
