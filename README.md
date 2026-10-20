@@ -60,6 +60,33 @@ cp .env.example .env
 - El puerto por defecto es `5433` para no chocar con una instalación local de PostgreSQL, que usa `5432`.
 - `.env` no se versiona. Docker Compose lo lee solo; Spring Boot no, por eso se carga a mano al ejecutar el servicio (ver más abajo).
 
+## Integración con la cátedra
+
+El servicio se conecta al servicio central de la cátedra por REST, Redis y Kafka. Para eso usa una cuenta técnica del proyecto, que se crea una sola vez, a mano.
+
+### Alta de la cuenta técnica (paso manual único)
+
+1. Con Postman, enviar `POST /api/student/register` a la URL de la API que entrega la cátedra, con un JSON que tenga `login`, `password` y `groupId` (y opcionalmente nombre, apellido y email).
+2. La respuesta trae `id_token` (el JWT técnico, válido por un año) y el objeto `integration` con los datos de Redis y Kafka.
+3. Copiar esos valores al `.env`:
+
+| Variable | Campo de la respuesta |
+|---|---|
+| `CATEDRA_API_URL` | URL base de la API (la entrega la cátedra) |
+| `CATEDRA_JWT` | `id_token` |
+| `CATEDRA_REDIS_HOST` | `integration.redisHost` |
+| `CATEDRA_REDIS_PORT` | `integration.redisPort` |
+| `CATEDRA_REDIS_USERNAME` | `integration.redisUsername` |
+| `CATEDRA_REDIS_PASSWORD` | `integration.redisPassword` |
+| `CATEDRA_KAFKA_BOOTSTRAP_SERVERS` | `integration.kafkaBootstrapServers` |
+| `CATEDRA_KAFKA_CONSUMER_GROUP` | `integration.kafkaConsumerGroupId` |
+| `CATEDRA_KAFKA_TOPIC_CATALOGO` | `integration.kafkaCatalogTopic` |
+
+- Si se pierde el JWT, `POST /api/authenticate` con el mismo usuario y contraseña devuelve uno nuevo y la configuración vigente.
+- Estos valores no se suben al repositorio ni aparecen en logs, capturas o documentación.
+- Si alguno se expone, hay que crear otra cuenta técnica y avisar a la cátedra.
+- El servicio de turnos usa la misma cuenta técnica.
+
 ## Base de datos con Docker Compose
 
 ```bash
@@ -115,18 +142,33 @@ Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un Po
 
 ## Organización del código
 
-Arquitectura hexagonal: las reglas del negocio no dependen de Spring, de la base ni de Kafka.
+Arquitectura hexagonal: las reglas del negocio no dependen de Spring, de la base ni de Kafka. El código del catálogo está en `prog2.serviciocatalogo.catalogo`:
 
 ```
-domain/model            entidades y reglas del negocio
-application/usecases    casos de uso (una clase por acción del servicio)
-application/port        interfaces que el núcleo ofrece (in) y necesita (out)
-infrastructure/web      controllers y DTO
-infrastructure/persistence   entidades JPA y repositorios
-infrastructure/messaging     integración con Kafka
+catalogo/
+├── domain/
+│   ├── model             categorías, profesionales, horarios semanales y versión del catálogo
+│   └── ports             interfaces que el núcleo ofrece (in) y necesita (out)
+├── application/
+│   └── usecases          casos de uso, una clase por acción del servicio
+└── infrastructure/
+    ├── persistence       entidades JPA, repositorios Spring Data y mappers
+    ├── web               controllers y DTO
+    └── messaging         integración con Kafka
 ```
 
-El dominio, las entidades JPA y los DTO son clases distintas, conectadas con mappers.
+El dominio, las entidades JPA y los DTO son clases distintas, conectadas con mappers. El dominio usa `record` de Java y no importa nada de Spring ni de JPA.
+
+### Base de datos
+
+| Tabla | Contenido |
+|---|---|
+| `categoria_profesional` | Categorías de profesionales |
+| `profesional` | Profesionales, con su categoría |
+| `horario_semanal` | Franjas de atención semanales de cada profesional |
+| `version_catalogo` | Versión del catálogo aplicada localmente (una sola fila) |
+
+Los IDs son los de la cátedra y las bajas son lógicas (`habilitado = false`).
 
 ## Decisiones técnicas
 
