@@ -1,0 +1,85 @@
+package prog2.serviciocatalogo.shared.web;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
+import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
+import prog2.serviciocatalogo.catalogo.domain.exception.RecursoNoEncontradoException;
+
+// Traduce las excepciones a ProblemDetail (RFC 7807) con el formato del ADR 0002.
+@RestControllerAdvice
+public class ManejadorErroresApi extends ResponseEntityExceptionHandler {
+
+    static final String PREFIJO_TIPO = "urn:catalogo:error:";
+
+    private static final Logger log = LoggerFactory.getLogger(ManejadorErroresApi.class);
+
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ProblemDetail recursoNoEncontrado(RecursoNoEncontradoException e, HttpServletRequest pedido) {
+        return problema(HttpStatus.NOT_FOUND, e.codigo(), "Recurso no encontrado", e.getMessage(), pedido);
+    }
+
+    @ExceptionHandler(ProfesionalDeshabilitadoException.class)
+    public ProblemDetail profesionalDeshabilitado(ProfesionalDeshabilitadoException e, HttpServletRequest pedido) {
+        return problema(HttpStatus.CONFLICT, "profesional-deshabilitado", "Profesional deshabilitado",
+                e.getMessage(), pedido);
+    }
+
+    @ExceptionHandler(CatalogoSinDatosException.class)
+    public ProblemDetail catalogoSinDatos(CatalogoSinDatosException e, HttpServletRequest pedido) {
+        return problema(HttpStatus.SERVICE_UNAVAILABLE, "catalogo-sin-datos", "Catálogo sin datos",
+                e.getMessage(), pedido);
+    }
+
+    // La traza queda solo en el log; al cliente no se le muestra nada interno.
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail errorInterno(Exception e, HttpServletRequest pedido) {
+        log.error("Error inesperado en {}", pedido.getRequestURI(), e);
+        return problema(HttpStatus.INTERNAL_SERVER_ERROR, "error-interno", "Error interno",
+                "Ocurrió un error inesperado", pedido);
+    }
+
+    // Completa type e instance en los errores que Spring MVC ya convierte a ProblemDetail.
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(
+            Exception ex, Object body, HttpHeaders headers, HttpStatusCode estado, WebRequest pedido) {
+        ResponseEntity<Object> respuesta = super.handleExceptionInternal(ex, body, headers, estado, pedido);
+        if (respuesta != null && respuesta.getBody() instanceof ProblemDetail problema) {
+            problema.setType(URI.create(PREFIJO_TIPO + codigoSegunEstado(estado)));
+            if (pedido instanceof ServletWebRequest servlet) {
+                problema.setInstance(URI.create(servlet.getRequest().getRequestURI()));
+            }
+        }
+        return respuesta;
+    }
+
+    private static String codigoSegunEstado(HttpStatusCode estado) {
+        return switch (estado.value()) {
+            case 400 -> "parametro-invalido";
+            case 404 -> "ruta-no-encontrada";
+            case 405 -> "metodo-no-permitido";
+            default -> "error-http";
+        };
+    }
+
+    private static ProblemDetail problema(
+            HttpStatus estado, String codigo, String titulo, String detalle, HttpServletRequest pedido) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(estado, detalle);
+        problema.setType(URI.create(PREFIJO_TIPO + codigo));
+        problema.setTitle(titulo);
+        problema.setInstance(URI.create(pedido.getRequestURI()));
+        return problema;
+    }
+}
