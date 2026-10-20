@@ -18,6 +18,7 @@ import prog2.serviciocatalogo.catalogo.domain.model.VersionCatalogo;
 import prog2.serviciocatalogo.catalogo.domain.ports.in.AplicarSnapshotUseCase;
 import prog2.serviciocatalogo.catalogo.domain.ports.out.CatalogoRepository;
 import prog2.serviciocatalogo.catalogo.domain.ports.out.CatedraClient;
+import prog2.serviciocatalogo.catalogo.domain.ports.out.RegistroSincronizacion;
 
 class InicializarCatalogoServiceTests {
 
@@ -26,8 +27,9 @@ class InicializarCatalogoServiceTests {
     private final CatalogoRepository catalogoRepository = mock(CatalogoRepository.class);
     private final CatedraClient catedraClient = mock(CatedraClient.class);
     private final AplicarSnapshotUseCase aplicarSnapshot = mock(AplicarSnapshotUseCase.class);
-    private final InicializarCatalogoService servicio =
-            new InicializarCatalogoService(catalogoRepository, catedraClient, aplicarSnapshot);
+    private final RegistroSincronizacion registroSincronizacion = mock(RegistroSincronizacion.class);
+    private final InicializarCatalogoService servicio = new InicializarCatalogoService(
+            catalogoRepository, catedraClient, aplicarSnapshot, registroSincronizacion);
 
     @Test
     void conLaBaseVaciaPideYAplicaElSnapshot() {
