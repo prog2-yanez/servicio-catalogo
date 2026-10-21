@@ -20,7 +20,7 @@ import prog2.serviciocatalogo.catalogo.domain.exception.CategoriaNoEncontradaExc
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalNoEncontradoException;
 
-@WebMvcTest
+@WebMvcTest(controllers = ManejadorErroresApiTests.ControladorDePrueba.class)
 @Import(ManejadorErroresApiTests.ControladorDePrueba.class)
 class ManejadorErroresApiTests {
 

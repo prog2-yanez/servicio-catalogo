@@ -18,6 +18,7 @@ import prog2.serviciocatalogo.catalogo.domain.model.SnapshotCatalogo;
 import prog2.serviciocatalogo.catalogo.domain.ports.in.AplicarSnapshotUseCase;
 import prog2.serviciocatalogo.catalogo.domain.ports.out.CatalogoRepository;
 import prog2.serviciocatalogo.catalogo.domain.ports.out.CatedraClient;
+import prog2.serviciocatalogo.catalogo.domain.ports.out.RegistroSincronizacion;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaCategoriaProfesionalRepository;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaHorarioSemanalRepository;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaProfesionalRepository;
@@ -38,6 +39,9 @@ class InicializarCatalogoIntegracionTests {
     private CatalogoRepository catalogoRepository;
 
     @Autowired
+    private RegistroSincronizacion registroSincronizacion;
+
+    @Autowired
     private JpaCategoriaProfesionalRepository categorias;
 
     @Autowired
@@ -54,7 +58,8 @@ class InicializarCatalogoIntegracionTests {
     // La cátedra se simula; la base y la transacción son las reales.
     @BeforeEach
     void preparar() {
-        inicializarCatalogo = new InicializarCatalogoService(catalogoRepository, catedraClient, aplicarSnapshot);
+        inicializarCatalogo = new InicializarCatalogoService(
+                catalogoRepository, catedraClient, aplicarSnapshot, registroSincronizacion);
         horarios.deleteAllInBatch();
         profesionales.deleteAllInBatch();
         categorias.deleteAllInBatch();
