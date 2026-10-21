@@ -2,6 +2,7 @@ package prog2.serviciocatalogo.shared.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
@@ -49,6 +51,19 @@ public class ManejadorErroresApi extends ResponseEntityExceptionHandler {
         log.error("Error inesperado en {}", pedido.getRequestURI(), e);
         return problema(HttpStatus.INTERNAL_SERVER_ERROR, "error-interno", "Error interno",
                 "Ocurrió un error inesperado", pedido);
+    }
+
+    // Nombra cada parámetro inválido en vez del "Validation failure" genérico de Spring.
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+            HandlerMethodValidationException ex, HttpHeaders headers, HttpStatusCode estado, WebRequest pedido) {
+        String detalle = ex.getParameterValidationResults().stream()
+                .flatMap(resultado -> resultado.getResolvableErrors().stream()
+                        .map(error -> resultado.getMethodParameter().getParameterName() + ": "
+                                + error.getDefaultMessage()))
+                .collect(Collectors.joining("; "));
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(estado, "Parámetros inválidos. " + detalle);
+        return handleExceptionInternal(ex, problema, headers, estado, pedido);
     }
 
     // Completa type e instance en los errores que Spring MVC ya convierte a ProblemDetail.
