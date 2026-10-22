@@ -1,0 +1,133 @@
+package prog2.serviciocatalogo.catalogo.infrastructure.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Instant;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
+import prog2.serviciocatalogo.TestcontainersConfiguration;
+import prog2.serviciocatalogo.catalogo.domain.model.CategoriaProfesional;
+import prog2.serviciocatalogo.catalogo.domain.model.FiltroProfesionales;
+import prog2.serviciocatalogo.catalogo.domain.model.Pagina;
+import prog2.serviciocatalogo.catalogo.domain.model.PedidoPagina;
+import prog2.serviciocatalogo.catalogo.domain.model.Profesional;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.CategoriaProfesionalMapper;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.ProfesionalMapper;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaCategoriaProfesionalRepository;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaProfesionalRepository;
+
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import({
+        TestcontainersConfiguration.class,
+        CategoriaProfesionalMapper.class,
+        ProfesionalMapper.class,
+        ConsultaProfesionalesPersistenceAdapter.class,
+        ConsultaCategoriasPersistenceAdapter.class
+})
+class ConsultaCatalogoPersistenciaTests {
+
+    private static final Instant CREADO = Instant.parse("2026-07-01T12:00:00Z");
+    private static final PedidoPagina PRIMERA_PAGINA = new PedidoPagina(0, 20);
+
+    @Autowired
+    private JpaCategoriaProfesionalRepository categorias;
+
+    @Autowired
+    private JpaProfesionalRepository profesionales;
+
+    @Autowired
+    private CategoriaProfesionalMapper categoriaMapper;
+
+    @Autowired
+    private ProfesionalMapper profesionalMapper;
+
+    @Autowired
+    private ConsultaProfesionalesPersistenceAdapter consultaProfesionales;
+
+    @Autowired
+    private ConsultaCategoriasPersistenceAdapter consultaCategorias;
+
+    @BeforeEach
+    void cargarDatos() {
+        categorias.saveAllAndFlush(List.of(
+                categoriaMapper.aEntidad(categoria(1L, "Pediatria")),
+                categoriaMapper.aEntidad(categoria(2L, "Clinica medica"))));
+        profesionales.saveAllAndFlush(List.of(
+                profesionalMapper.aEntidad(profesional(10L, 1L, "Ana", "Gomez")),
+                profesionalMapper.aEntidad(profesional(11L, 1L, "Luis", "Perez")),
+                profesionalMapper.aEntidad(profesional(12L, 2L, "Ana", "Diaz")),
+                profesionalMapper.aEntidad(profesional(13L, 2L, "Marta", "Ana_lia"))));
+    }
+
+    @Test
+    void sinFiltrosDevuelveTodosOrdenadosPorApellido() {
+        assertThat(nombres(buscar(null, null))).containsExactly("Marta Ana_lia", "Ana Diaz", "Ana Gomez", "Luis Perez");
+    }
+
+    @Test
+    void filtraPorCategoria() {
+        assertThat(nombres(buscar(1L, null))).containsExactly("Ana Gomez", "Luis Perez");
+    }
+
+    @Test
+    void filtraPorNombreOApellidoSinDistinguirMayusculas() {
+        assertThat(nombres(buscar(null, "aNA"))).containsExactly("Marta Ana_lia", "Ana Diaz", "Ana Gomez");
+    }
+
+    @Test
+    void combinaCategoriaYNombre() {
+        assertThat(nombres(buscar(2L, "ana"))).containsExactly("Marta Ana_lia", "Ana Diaz");
+    }
+
+    @Test
+    void losComodinesDelUsuarioSeBuscanComoTexto() {
+        assertThat(nombres(buscar(null, "a_l"))).containsExactly("Marta Ana_lia");
+        assertThat(buscar(null, "%").contenido()).isEmpty();
+    }
+
+    @Test
+    void unaCategoriaInexistenteDevuelveUnaListaVacia() {
+        assertThat(buscar(99L, null).contenido()).isEmpty();
+    }
+
+    @Test
+    void devuelveLaPaginaPedidaConElTotal() {
+        Pagina<Profesional> pagina = consultaProfesionales.buscar(
+                new FiltroProfesionales(null, null), new PedidoPagina(1, 3));
+
+        assertThat(nombres(pagina)).containsExactly("Luis Perez");
+        assertThat(pagina.totalElementos()).isEqualTo(4);
+        assertThat(pagina.totalPaginas()).isEqualTo(2);
+    }
+
+    @Test
+    void listaLasCategoriasOrdenadasPorNombreYBuscaPorId() {
+        assertThat(consultaCategorias.listar(PRIMERA_PAGINA).contenido())
+                .extracting(CategoriaProfesional::nombre)
+                .containsExactly("Clinica medica", "Pediatria");
+        assertThat(consultaCategorias.buscarPorId(1L)).map(CategoriaProfesional::nombre).contains("Pediatria");
+        assertThat(consultaCategorias.buscarPorId(99L)).isEmpty();
+    }
+
+    private Pagina<Profesional> buscar(Long categoriaId, String nombre) {
+        return consultaProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre), PRIMERA_PAGINA);
+    }
+
+    private static List<String> nombres(Pagina<Profesional> pagina) {
+        return pagina.contenido().stream().map(Profesional::nombreCompleto).toList();
+    }
+
+    private static CategoriaProfesional categoria(Long id, String nombre) {
+        return new CategoriaProfesional(id, nombre, "Descripcion", true, CREADO, CREADO);
+    }
+
+    private static Profesional profesional(Long id, Long categoriaId, String nombre, String apellido) {
+        return new Profesional(id, categoriaId, nombre, apellido, true, CREADO, CREADO);
+    }
+}
