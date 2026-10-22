@@ -21,6 +21,7 @@ import prog2.serviciocatalogo.catalogo.domain.model.Pagina;
 import prog2.serviciocatalogo.catalogo.domain.model.PedidoPagina;
 import prog2.serviciocatalogo.catalogo.domain.model.Profesional;
 import prog2.serviciocatalogo.catalogo.domain.ports.in.BuscarProfesionalesUseCase;
+import prog2.serviciocatalogo.catalogo.domain.ports.in.ConsultarProfesionalUseCase;
 
 @WebMvcTest(controllers = ProfesionalController.class)
 class ProfesionalControllerTests {
@@ -32,6 +33,9 @@ class ProfesionalControllerTests {
 
     @MockitoBean
     private BuscarProfesionalesUseCase buscarProfesionales;
+
+    @MockitoBean
+    private ConsultarProfesionalUseCase consultarProfesional;
 
     @Test
     void pasaLosFiltrosYDevuelveLaPaginaConElFormatoDelContrato() {
