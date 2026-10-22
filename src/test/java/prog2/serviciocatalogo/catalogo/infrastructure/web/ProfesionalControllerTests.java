@@ -6,7 +6,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +18,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
+import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
+import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalNoEncontradoException;
+import prog2.serviciocatalogo.catalogo.domain.model.AgendaProfesional;
 import prog2.serviciocatalogo.catalogo.domain.model.FiltroProfesionales;
+import prog2.serviciocatalogo.catalogo.domain.model.HorarioSemanal;
 import prog2.serviciocatalogo.catalogo.domain.model.Pagina;
 import prog2.serviciocatalogo.catalogo.domain.model.PedidoPagina;
 import prog2.serviciocatalogo.catalogo.domain.model.Profesional;
 import prog2.serviciocatalogo.catalogo.domain.ports.in.BuscarProfesionalesUseCase;
+import prog2.serviciocatalogo.catalogo.domain.ports.in.ConsultarProfesionalUseCase;
 
 @WebMvcTest(controllers = ProfesionalController.class)
 class ProfesionalControllerTests {
@@ -32,6 +39,9 @@ class ProfesionalControllerTests {
 
     @MockitoBean
     private BuscarProfesionalesUseCase buscarProfesionales;
+
+    @MockitoBean
+    private ConsultarProfesionalUseCase consultarProfesional;
 
     @Test
     void pasaLosFiltrosYDevuelveLaPaginaConElFormatoDelContrato() {
@@ -75,5 +85,45 @@ class ProfesionalControllerTests {
 
         assertThat(resultado).hasStatus(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(resultado).bodyJson().extractingPath("$.type").isEqualTo("urn:catalogo:error:catalogo-sin-datos");
+    }
+
+    @Test
+    void devuelveElProfesionalConSuAgendaConElFormatoDelContrato() {
+        Profesional ana = new Profesional(15L, 1L, "Ana", "Gomez", true, CREADO, CREADO);
+        HorarioSemanal lunes = new HorarioSemanal(21L, 15L, DayOfWeek.MONDAY,
+                LocalTime.of(9, 0), LocalTime.of(12, 0), 30, true, CREADO, CREADO);
+        when(consultarProfesional.obtenerConAgenda(15)).thenReturn(new AgendaProfesional(ana, List.of(lunes), 7));
+
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales/15").exchange();
+
+        assertThat(resultado).hasStatusOk();
+        assertThat(resultado).bodyJson().isEqualTo("""
+                {"id": 15, "categoriaId": 1, "nombre": "Ana", "apellido": "Gomez", "habilitado": true,
+                 "horarios": [{"id": 21, "diaSemana": "MONDAY", "horaInicio": "09:00", "horaFin": "12:00",
+                               "duracionTurnoMinutos": 30}],
+                 "versionCatalogo": 7}
+                """);
+    }
+
+    @Test
+    void unProfesionalInexistenteDevuelve404() {
+        when(consultarProfesional.obtenerConAgenda(99)).thenThrow(new ProfesionalNoEncontradoException(99));
+
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales/99").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(resultado).bodyJson().extractingPath("$.type")
+                .isEqualTo("urn:catalogo:error:profesional-no-encontrado");
+    }
+
+    @Test
+    void unProfesionalDeshabilitadoDevuelve409() {
+        when(consultarProfesional.obtenerConAgenda(16)).thenThrow(new ProfesionalDeshabilitadoException(16));
+
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales/16").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.CONFLICT);
+        assertThat(resultado).bodyJson().extractingPath("$.type")
+                .isEqualTo("urn:catalogo:error:profesional-deshabilitado");
     }
 }
