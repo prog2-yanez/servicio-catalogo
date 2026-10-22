@@ -17,6 +17,7 @@ import prog2.serviciocatalogo.catalogo.domain.model.Pagina;
 import prog2.serviciocatalogo.catalogo.domain.model.PedidoPagina;
 import prog2.serviciocatalogo.catalogo.domain.model.Profesional;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.CategoriaProfesionalMapper;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.HorarioSemanalMapper;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.ProfesionalMapper;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaCategoriaProfesionalRepository;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaProfesionalRepository;
@@ -27,6 +28,7 @@ import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.Jpa
         TestcontainersConfiguration.class,
         CategoriaProfesionalMapper.class,
         ProfesionalMapper.class,
+        HorarioSemanalMapper.class,
         ConsultaProfesionalesPersistenceAdapter.class,
         ConsultaCategoriasPersistenceAdapter.class
 })
