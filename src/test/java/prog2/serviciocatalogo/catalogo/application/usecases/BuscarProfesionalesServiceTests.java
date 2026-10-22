@@ -26,7 +26,7 @@ class BuscarProfesionalesServiceTests {
 
     private final CatalogoRepository catalogoRepository = mock(CatalogoRepository.class);
     private final ConsultaProfesionalesRepository consulta = mock(ConsultaProfesionalesRepository.class);
-    private final BuscarProfesionalesService servicio = new BuscarProfesionalesService(catalogoRepository, consulta);
+    private final BuscarProfesionalesService servicio = new BuscarProfesionalesService(new GuardiaCatalogo(catalogoRepository), consulta);
 
     @Test
     void conDatosDevuelveLaPaginaDeLaCopiaLocal() {
