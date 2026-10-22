@@ -2,7 +2,9 @@ package prog2.serviciocatalogo.catalogo.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import prog2.serviciocatalogo.TestcontainersConfiguration;
 import prog2.serviciocatalogo.catalogo.domain.model.CategoriaProfesional;
 import prog2.serviciocatalogo.catalogo.domain.model.FiltroProfesionales;
+import prog2.serviciocatalogo.catalogo.domain.model.HorarioSemanal;
 import prog2.serviciocatalogo.catalogo.domain.model.Pagina;
 import prog2.serviciocatalogo.catalogo.domain.model.PedidoPagina;
 import prog2.serviciocatalogo.catalogo.domain.model.Profesional;
@@ -20,6 +23,7 @@ import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.Categor
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.HorarioSemanalMapper;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.mapper.ProfesionalMapper;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaCategoriaProfesionalRepository;
+import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaHorarioSemanalRepository;
 import prog2.serviciocatalogo.catalogo.infrastructure.persistence.repository.JpaProfesionalRepository;
 
 @DataJpaTest
@@ -42,6 +46,12 @@ class ConsultaCatalogoPersistenciaTests {
 
     @Autowired
     private JpaProfesionalRepository profesionales;
+
+    @Autowired
+    private JpaHorarioSemanalRepository horarios;
+
+    @Autowired
+    private HorarioSemanalMapper horarioMapper;
 
     @Autowired
     private CategoriaProfesionalMapper categoriaMapper;
@@ -117,6 +127,22 @@ class ConsultaCatalogoPersistenciaTests {
         assertThat(consultaCategorias.buscarPorId(99L)).isEmpty();
     }
 
+    @Test
+    void buscaUnProfesionalPorId() {
+        assertThat(consultaProfesionales.buscarPorId(10L)).map(Profesional::nombreCompleto).contains("Ana Gomez");
+        assertThat(consultaProfesionales.buscarPorId(99L)).isEmpty();
+    }
+
+    @Test
+    void devuelveSoloLosHorariosHabilitadosDelProfesional() {
+        horarios.saveAllAndFlush(List.of(
+                horarioMapper.aEntidad(horario(21L, 10L, DayOfWeek.MONDAY, true)),
+                horarioMapper.aEntidad(horario(22L, 10L, DayOfWeek.TUESDAY, false)),
+                horarioMapper.aEntidad(horario(23L, 11L, DayOfWeek.MONDAY, true))));
+
+        assertThat(consultaProfesionales.horariosHabilitados(10L)).extracting(HorarioSemanal::id).containsExactly(21L);
+    }
+
     private Pagina<Profesional> buscar(Long categoriaId, String nombre) {
         return consultaProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre), PRIMERA_PAGINA);
     }
@@ -131,5 +157,10 @@ class ConsultaCatalogoPersistenciaTests {
 
     private static Profesional profesional(Long id, Long categoriaId, String nombre, String apellido) {
         return new Profesional(id, categoriaId, nombre, apellido, true, CREADO, CREADO);
+    }
+
+    private static HorarioSemanal horario(Long id, Long profesionalId, DayOfWeek dia, boolean habilitado) {
+        return new HorarioSemanal(id, profesionalId, dia, LocalTime.of(9, 0), LocalTime.of(12, 0), 30,
+                habilitado, CREADO, CREADO);
     }
 }
