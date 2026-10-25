@@ -28,7 +28,7 @@ class ConsultarCategoriasServiceTests {
 
     private final CatalogoRepository catalogoRepository = mock(CatalogoRepository.class);
     private final ConsultaCategoriasRepository consulta = mock(ConsultaCategoriasRepository.class);
-    private final ConsultarCategoriasService servicio = new ConsultarCategoriasService(catalogoRepository, consulta);
+    private final ConsultarCategoriasService servicio = new ConsultarCategoriasService(new GuardiaCatalogo(catalogoRepository), consulta);
 
     @BeforeEach
     void conDatos() {
