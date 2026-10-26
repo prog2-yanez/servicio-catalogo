@@ -60,6 +60,22 @@ class ConsultarProfesionalServiceTests {
                 .isInstanceOf(ProfesionalDeshabilitadoException.class);
     }
 
+    @Test
+    void sinDatosUnProfesionalDaNoEncontrado() {
+        when(catalogoRepository.obtenerVersion()).thenReturn(Optional.empty());
+        when(consulta.buscarPorId(15)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> servicio.obtenerConAgenda(15)).isInstanceOf(ProfesionalNoEncontradoException.class);
+    }
+
+    @Test
+    void unProfesionalSinVersionAplicadaEsUnErrorInterno() {
+        when(catalogoRepository.obtenerVersion()).thenReturn(Optional.empty());
+        when(consulta.buscarPorId(15)).thenReturn(Optional.of(profesional(true)));
+
+        assertThatThrownBy(() -> servicio.obtenerConAgenda(15)).isInstanceOf(IllegalStateException.class);
+    }
+
     private void conVersion(long numero) {
         when(catalogoRepository.obtenerVersion()).thenReturn(Optional.of(new VersionCatalogo(numero, CREADO)));
     }
