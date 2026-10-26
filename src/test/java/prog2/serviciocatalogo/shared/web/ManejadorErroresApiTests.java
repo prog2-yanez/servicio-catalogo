@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
 import prog2.serviciocatalogo.catalogo.domain.exception.CategoriaNoEncontradaException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalNoEncontradoException;
@@ -48,13 +47,6 @@ class ManejadorErroresApiTests {
         MvcTestResult resultado = mvc.get().uri("/prueba/deshabilitado").exchange();
 
         verificarProblema(resultado, HttpStatus.CONFLICT, "profesional-deshabilitado", "/prueba/deshabilitado");
-    }
-
-    @Test
-    void catalogoSinDatosDevuelve503() {
-        MvcTestResult resultado = mvc.get().uri("/prueba/sin-datos").exchange();
-
-        verificarProblema(resultado, HttpStatus.SERVICE_UNAVAILABLE, "catalogo-sin-datos", "/prueba/sin-datos");
     }
 
     @Test
@@ -115,11 +107,6 @@ class ManejadorErroresApiTests {
         @GetMapping("/prueba/deshabilitado")
         String deshabilitado() {
             throw new ProfesionalDeshabilitadoException(15);
-        }
-
-        @GetMapping("/prueba/sin-datos")
-        String sinDatos() {
-            throw new CatalogoSinDatosException();
         }
 
         @GetMapping("/prueba/numero")

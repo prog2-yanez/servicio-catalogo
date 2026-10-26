@@ -16,7 +16,6 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.RecursoNoEncontradoException;
 
@@ -36,12 +35,6 @@ public class ManejadorErroresApi extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ProfesionalDeshabilitadoException.class)
     public ProblemDetail profesionalDeshabilitado(ProfesionalDeshabilitadoException e, HttpServletRequest pedido) {
         return problema(HttpStatus.CONFLICT, "profesional-deshabilitado", "Profesional deshabilitado",
-                e.getMessage(), pedido);
-    }
-
-    @ExceptionHandler(CatalogoSinDatosException.class)
-    public ProblemDetail catalogoSinDatos(CatalogoSinDatosException e, HttpServletRequest pedido) {
-        return problema(HttpStatus.SERVICE_UNAVAILABLE, "catalogo-sin-datos", "Catálogo sin datos",
                 e.getMessage(), pedido);
     }
 

@@ -3,7 +3,6 @@ package prog2.serviciocatalogo.catalogo.application.usecases;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.DayOfWeek;
@@ -12,7 +11,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalNoEncontradoException;
 import prog2.serviciocatalogo.catalogo.domain.model.AgendaProfesional;
@@ -29,7 +27,7 @@ class ConsultarProfesionalServiceTests {
     private final CatalogoRepository catalogoRepository = mock(CatalogoRepository.class);
     private final ConsultaProfesionalesRepository consulta = mock(ConsultaProfesionalesRepository.class);
     private final ConsultarProfesionalService servicio =
-            new ConsultarProfesionalService(new GuardiaCatalogo(catalogoRepository), consulta);
+            new ConsultarProfesionalService(catalogoRepository, consulta);
 
     @Test
     void devuelveElProfesionalConSusHorariosYLaVersion() {
@@ -63,11 +61,19 @@ class ConsultarProfesionalServiceTests {
     }
 
     @Test
-    void sinDatosAvisaQueElCatalogoNoEstaListo() {
+    void sinDatosUnProfesionalDaNoEncontrado() {
         when(catalogoRepository.obtenerVersion()).thenReturn(Optional.empty());
+        when(consulta.buscarPorId(15)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.obtenerConAgenda(15)).isInstanceOf(CatalogoSinDatosException.class);
-        verifyNoInteractions(consulta);
+        assertThatThrownBy(() -> servicio.obtenerConAgenda(15)).isInstanceOf(ProfesionalNoEncontradoException.class);
+    }
+
+    @Test
+    void unProfesionalSinVersionAplicadaEsUnErrorInterno() {
+        when(catalogoRepository.obtenerVersion()).thenReturn(Optional.empty());
+        when(consulta.buscarPorId(15)).thenReturn(Optional.of(profesional(true)));
+
+        assertThatThrownBy(() -> servicio.obtenerConAgenda(15)).isInstanceOf(IllegalStateException.class);
     }
 
     private void conVersion(long numero) {

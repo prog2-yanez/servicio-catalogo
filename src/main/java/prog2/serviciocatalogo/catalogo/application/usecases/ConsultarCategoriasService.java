@@ -13,24 +13,19 @@ import prog2.serviciocatalogo.catalogo.domain.ports.out.ConsultaCategoriasReposi
 @Transactional(readOnly = true)
 public class ConsultarCategoriasService implements ConsultarCategoriasUseCase {
 
-    private final GuardiaCatalogo guardiaCatalogo;
     private final ConsultaCategoriasRepository consultaCategorias;
 
-    public ConsultarCategoriasService(
-            GuardiaCatalogo guardiaCatalogo, ConsultaCategoriasRepository consultaCategorias) {
-        this.guardiaCatalogo = guardiaCatalogo;
+    public ConsultarCategoriasService(ConsultaCategoriasRepository consultaCategorias) {
         this.consultaCategorias = consultaCategorias;
     }
 
     @Override
     public Pagina<CategoriaProfesional> listar(PedidoPagina pedido) {
-        guardiaCatalogo.exigirDatos();
         return consultaCategorias.listar(pedido);
     }
 
     @Override
     public CategoriaProfesional obtener(long id) {
-        guardiaCatalogo.exigirDatos();
         return consultaCategorias.buscarPorId(id).orElseThrow(() -> new CategoriaNoEncontradaException(id));
     }
 }

@@ -2,6 +2,7 @@ package prog2.serviciocatalogo.catalogo.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.persistence.EntityManager;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -40,6 +41,9 @@ class ConsultaCatalogoPersistenciaTests {
 
     private static final Instant CREADO = Instant.parse("2026-07-01T12:00:00Z");
     private static final PedidoPagina PRIMERA_PAGINA = new PedidoPagina(0, 20);
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private JpaCategoriaProfesionalRepository categorias;
@@ -106,6 +110,19 @@ class ConsultaCatalogoPersistenciaTests {
     @Test
     void unaCategoriaInexistenteDevuelveUnaListaVacia() {
         assertThat(buscar(99L, null).contenido()).isEmpty();
+    }
+
+    @Test
+    void sinDatosLasConsultasDevuelvenListasVaciasYNingunId() {
+        profesionales.deleteAllInBatch();
+        categorias.deleteAllInBatch();
+        // El borrado en lote no pasa por el contexto de persistencia: se limpia para no leer entidades viejas.
+        entityManager.clear();
+
+        assertThat(buscar(null, null).contenido()).isEmpty();
+        assertThat(consultaCategorias.listar(PRIMERA_PAGINA).contenido()).isEmpty();
+        assertThat(consultaProfesionales.buscarPorId(10)).isEmpty();
+        assertThat(consultaCategorias.buscarPorId(1)).isEmpty();
     }
 
     @Test
