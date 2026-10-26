@@ -13,19 +13,15 @@ import prog2.serviciocatalogo.catalogo.domain.ports.out.ConsultaProfesionalesRep
 @Transactional(readOnly = true)
 public class BuscarProfesionalesService implements BuscarProfesionalesUseCase {
 
-    private final GuardiaCatalogo guardiaCatalogo;
     private final ConsultaProfesionalesRepository consultaProfesionales;
 
-    public BuscarProfesionalesService(
-            GuardiaCatalogo guardiaCatalogo, ConsultaProfesionalesRepository consultaProfesionales) {
-        this.guardiaCatalogo = guardiaCatalogo;
+    public BuscarProfesionalesService(ConsultaProfesionalesRepository consultaProfesionales) {
         this.consultaProfesionales = consultaProfesionales;
     }
 
-    // Busca solo en la copia local; si todavía no hay datos, no responde una lista vacía engañosa.
+    // Busca solo en la copia local; si todavía no hay datos, la página viene vacía.
     @Override
     public Pagina<Profesional> buscar(FiltroProfesionales filtro, PedidoPagina pedido) {
-        guardiaCatalogo.exigirDatos();
         return consultaProfesionales.buscar(filtro, pedido);
     }
 }

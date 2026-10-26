@@ -17,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
-import prog2.serviciocatalogo.catalogo.domain.exception.CatalogoSinDatosException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalNoEncontradoException;
 import prog2.serviciocatalogo.catalogo.domain.model.AgendaProfesional;
@@ -75,16 +74,6 @@ class ProfesionalControllerTests {
         assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(resultado).bodyJson().extractingPath("$.detail").asString().contains("size", "100");
         verifyNoInteractions(buscarProfesionales);
-    }
-
-    @Test
-    void sinDatosDevuelve503() {
-        when(buscarProfesionales.buscar(any(), any())).thenThrow(new CatalogoSinDatosException());
-
-        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales").exchange();
-
-        assertThat(resultado).hasStatus(HttpStatus.SERVICE_UNAVAILABLE);
-        assertThat(resultado).bodyJson().extractingPath("$.type").isEqualTo("urn:catalogo:error:catalogo-sin-datos");
     }
 
     @Test
