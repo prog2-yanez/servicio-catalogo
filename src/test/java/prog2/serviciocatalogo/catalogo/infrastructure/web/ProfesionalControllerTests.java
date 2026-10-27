@@ -68,6 +68,24 @@ class ProfesionalControllerTests {
     }
 
     @Test
+    void pasaElFiltroDeHabilitado() {
+        when(buscarProfesionales.buscar(any(), any())).thenReturn(new Pagina<>(List.of(), 0, 20, 0));
+
+        assertThat(mvc.get().uri("/api/v1/profesionales?habilitado=false").exchange()).hasStatusOk();
+
+        verify(buscarProfesionales).buscar(new FiltroProfesionales(null, null, false), new PedidoPagina(0, 20));
+    }
+
+    @Test
+    void unHabilitadoQueNoEsBooleanoDevuelve400() {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales?habilitado=abc").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.type").isEqualTo("urn:catalogo:error:parametro-invalido");
+        verifyNoInteractions(buscarProfesionales);
+    }
+
+    @Test
     void unTamanioFueraDeRangoDevuelve400ConElParametroQueFallo() {
         MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales?size=500").exchange();
 
