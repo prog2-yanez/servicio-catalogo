@@ -113,6 +113,24 @@ class ConsultaCatalogoPersistenciaTests {
     }
 
     @Test
+    void filtraPorEstadoHabilitado() {
+        guardarDeshabilitada();
+
+        assertThat(nombres(buscar(null, null, true)))
+                .containsExactly("Marta Ana_lia", "Ana Diaz", "Ana Gomez", "Luis Perez");
+        assertThat(nombres(buscar(null, null, false))).containsExactly("Ana Rios");
+    }
+
+    @Test
+    void combinaHabilitadoConCategoriaYNombre() {
+        guardarDeshabilitada();
+
+        assertThat(nombres(buscar(1L, "ana", true))).containsExactly("Ana Gomez");
+        assertThat(nombres(buscar(1L, "ana", false))).containsExactly("Ana Rios");
+        assertThat(nombres(buscar(1L, "ana", null))).containsExactly("Ana Gomez", "Ana Rios");
+    }
+
+    @Test
     void sinDatosLasConsultasDevuelvenListasVaciasYNingunId() {
         profesionales.deleteAllInBatch();
         categorias.deleteAllInBatch();
@@ -128,7 +146,7 @@ class ConsultaCatalogoPersistenciaTests {
     @Test
     void devuelveLaPaginaPedidaConElTotal() {
         Pagina<Profesional> pagina = consultaProfesionales.buscar(
-                new FiltroProfesionales(null, null), new PedidoPagina(1, 3));
+                new FiltroProfesionales(null, null, null), new PedidoPagina(1, 3));
 
         assertThat(nombres(pagina)).containsExactly("Luis Perez");
         assertThat(pagina.totalElementos()).isEqualTo(4);
@@ -161,7 +179,16 @@ class ConsultaCatalogoPersistenciaTests {
     }
 
     private Pagina<Profesional> buscar(Long categoriaId, String nombre) {
-        return consultaProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre), PRIMERA_PAGINA);
+        return buscar(categoriaId, nombre, null);
+    }
+
+    private Pagina<Profesional> buscar(Long categoriaId, String nombre, Boolean habilitado) {
+        return consultaProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre, habilitado), PRIMERA_PAGINA);
+    }
+
+    private void guardarDeshabilitada() {
+        profesionales.saveAndFlush(profesionalMapper.aEntidad(
+                new Profesional(14L, 1L, "Ana", "Rios", false, CREADO, CREADO)));
     }
 
     private static List<String> nombres(Pagina<Profesional> pagina) {

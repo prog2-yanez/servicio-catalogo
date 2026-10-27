@@ -32,13 +32,14 @@ public class ProfesionalController {
     public PaginaResponse<ProfesionalResumenResponse> buscar(
             @RequestParam(required = false) Long categoriaId,
             @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) Boolean habilitado,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "debe ser 0 o mayor") int page,
             @RequestParam(defaultValue = "20")
             @Min(value = 1, message = "debe ser 1 o mayor")
             @Max(value = PedidoPagina.TAMANIO_MAXIMO, message = "debe ser 100 o menor") int size) {
+        FiltroProfesionales filtro = new FiltroProfesionales(categoriaId, nombre, habilitado);
         return PaginaResponse.desde(
-                buscarProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre), new PedidoPagina(page, size)),
-                ProfesionalResumenResponse::desde);
+                buscarProfesionales.buscar(filtro, new PedidoPagina(page, size)), ProfesionalResumenResponse::desde);
     }
 
     // Lo usa Turnos antes de dar un turno: datos vigentes, horarios habilitados y versión del catálogo.

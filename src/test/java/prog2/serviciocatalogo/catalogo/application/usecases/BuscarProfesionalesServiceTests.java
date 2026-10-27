@@ -14,7 +14,7 @@ import prog2.serviciocatalogo.catalogo.domain.ports.out.ConsultaProfesionalesRep
 
 class BuscarProfesionalesServiceTests {
 
-    private static final FiltroProfesionales FILTRO = new FiltroProfesionales(1L, "ana");
+    private static final FiltroProfesionales FILTRO = new FiltroProfesionales(1L, "ana", null);
     private static final PedidoPagina PEDIDO = new PedidoPagina(0, 20);
 
     private final ConsultaProfesionalesRepository consulta = mock(ConsultaProfesionalesRepository.class);
