@@ -45,7 +45,7 @@ class ProfesionalControllerTests {
     @Test
     void pasaLosFiltrosYDevuelveLaPaginaConElFormatoDelContrato() {
         Profesional ana = new Profesional(10L, 1L, "Ana", "Gomez", true, CREADO, CREADO);
-        when(buscarProfesionales.buscar(new FiltroProfesionales(1L, "ana"), new PedidoPagina(2, 5)))
+        when(buscarProfesionales.buscar(new FiltroProfesionales(1L, "ana", null), new PedidoPagina(2, 5)))
                 .thenReturn(new Pagina<>(List.of(ana), 2, 5, 11));
 
         MvcTestResult resultado = mvc.get()
@@ -64,7 +64,7 @@ class ProfesionalControllerTests {
 
         assertThat(mvc.get().uri("/api/v1/profesionales").exchange()).hasStatusOk();
 
-        verify(buscarProfesionales).buscar(new FiltroProfesionales(null, null), new PedidoPagina(0, 20));
+        verify(buscarProfesionales).buscar(new FiltroProfesionales(null, null, null), new PedidoPagina(0, 20));
     }
 
     @Test

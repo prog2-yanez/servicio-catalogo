@@ -10,10 +10,10 @@ class ConsultaPaginadaTests {
 
     @Test
     void elFiltroIgnoraUnNombreVacioYLimpiaLosEspacios() {
-        assertThat(new FiltroProfesionales(null, "   ").filtraPorNombre()).isFalse();
-        assertThat(new FiltroProfesionales(null, null).filtraPorNombre()).isFalse();
-        assertThat(new FiltroProfesionales(null, "  Ana ").nombre()).isEqualTo("Ana");
-        assertThat(new FiltroProfesionales(3L, null).filtraPorCategoria()).isTrue();
+        assertThat(new FiltroProfesionales(null, "   ", null).filtraPorNombre()).isFalse();
+        assertThat(new FiltroProfesionales(null, null, null).filtraPorNombre()).isFalse();
+        assertThat(new FiltroProfesionales(null, "  Ana ", null).nombre()).isEqualTo("Ana");
+        assertThat(new FiltroProfesionales(3L, null, null).filtraPorCategoria()).isTrue();
     }
 
     @Test

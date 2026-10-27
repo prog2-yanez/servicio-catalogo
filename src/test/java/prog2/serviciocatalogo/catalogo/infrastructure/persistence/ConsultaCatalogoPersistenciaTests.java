@@ -128,7 +128,7 @@ class ConsultaCatalogoPersistenciaTests {
     @Test
     void devuelveLaPaginaPedidaConElTotal() {
         Pagina<Profesional> pagina = consultaProfesionales.buscar(
-                new FiltroProfesionales(null, null), new PedidoPagina(1, 3));
+                new FiltroProfesionales(null, null, null), new PedidoPagina(1, 3));
 
         assertThat(nombres(pagina)).containsExactly("Luis Perez");
         assertThat(pagina.totalElementos()).isEqualTo(4);
@@ -161,7 +161,7 @@ class ConsultaCatalogoPersistenciaTests {
     }
 
     private Pagina<Profesional> buscar(Long categoriaId, String nombre) {
-        return consultaProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre), PRIMERA_PAGINA);
+        return consultaProfesionales.buscar(new FiltroProfesionales(categoriaId, nombre, null), PRIMERA_PAGINA);
     }
 
     private static List<String> nombres(Pagina<Profesional> pagina) {

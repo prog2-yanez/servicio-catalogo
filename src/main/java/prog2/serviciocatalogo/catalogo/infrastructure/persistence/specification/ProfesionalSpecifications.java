@@ -21,11 +21,18 @@ public final class ProfesionalSpecifications {
         if (filtro.filtraPorNombre()) {
             condicion = condicion.and(conNombre(filtro.nombre()));
         }
+        if (filtro.filtraPorHabilitado()) {
+            condicion = condicion.and(estaHabilitado(filtro.habilitado()));
+        }
         return condicion;
     }
 
     static Specification<ProfesionalEntity> deCategoria(long categoriaId) {
         return (raiz, consulta, cb) -> cb.equal(raiz.get("categoriaId"), categoriaId);
+    }
+
+    static Specification<ProfesionalEntity> estaHabilitado(boolean habilitado) {
+        return (raiz, consulta, cb) -> cb.equal(raiz.get("habilitado"), habilitado);
     }
 
     // Busca el texto dentro del nombre o del apellido, sin distinguir mayúsculas.
