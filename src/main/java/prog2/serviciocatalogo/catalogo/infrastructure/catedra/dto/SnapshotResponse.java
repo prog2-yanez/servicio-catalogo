@@ -36,7 +36,7 @@ public record SnapshotResponse(
             Long id, String name, String description, boolean enabled,
             Instant createdAt, Instant updatedAt) {
 
-        CategoriaProfesional aDominio() {
+        public CategoriaProfesional aDominio() {
             return new CategoriaProfesional(id, name, description, enabled, createdAt, updatedAt);
         }
     }
@@ -46,7 +46,7 @@ public record SnapshotResponse(
             Long id, Long categoryId, String firstName, String lastName, boolean enabled,
             Instant createdAt, Instant updatedAt) {
 
-        Profesional aDominio() {
+        public Profesional aDominio() {
             return new Profesional(id, categoryId, firstName, lastName, enabled, createdAt, updatedAt);
         }
     }
@@ -56,7 +56,7 @@ public record SnapshotResponse(
             Long id, Long professionalId, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime,
             int slotDurationMinutes, boolean enabled, Instant createdAt, Instant updatedAt) {
 
-        HorarioSemanal aDominio() {
+        public HorarioSemanal aDominio() {
             return new HorarioSemanal(id, professionalId, dayOfWeek, startTime, endTime,
                     slotDurationMinutes, enabled, createdAt, updatedAt);
         }
