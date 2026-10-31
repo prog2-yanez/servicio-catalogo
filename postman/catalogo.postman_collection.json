@@ -1,0 +1,905 @@
+{
+  "info": {
+    "_postman_id": "0cfe3860-9b01-54f9-a8bc-a5ece0dcbcbe",
+    "name": "Servicio de catálogo",
+    "description": "Prueba la API del catálogo de punta a punta, con el servicio levantado. Las variables baseUrl y token salen del environment; los ids se toman de las respuestas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// El token se manda solo si el environment lo trae (el catálogo lo va a exigir con la #19).",
+          "const token = pm.environment.get('token');",
+          "if (token) {",
+          "    pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + token });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "idInexistente",
+      "value": "999999999"
+    },
+    {
+      "key": "categoriaId",
+      "value": ""
+    },
+    {
+      "key": "profesionalId",
+      "value": ""
+    },
+    {
+      "key": "profesionalDeshabilitadoId",
+      "value": ""
+    },
+    {
+      "key": "textoBuscado",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Categorías",
+      "item": [
+        {
+          "name": "Listar categorías",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es una página con content y page', () => {",
+                  "    pm.expect(cuerpo.content).to.be.an('array');",
+                  "    pm.expect(cuerpo.page).to.include.all.keys('size', 'number', 'totalElements', 'totalPages');",
+                  "});",
+                  "pm.test('cada categoría tiene id, nombre y habilitada', () => cuerpo.content.forEach(c => {",
+                  "    pm.expect(c.id).to.be.a('number');",
+                  "    pm.expect(c.nombre).to.be.a('string');",
+                  "    pm.expect(c.habilitada).to.be.a('boolean');",
+                  "}));",
+                  "// Los pedidos siguientes usan una categoría que existe, sin escribir ids en la colección.",
+                  "pm.collectionVariables.set('categoriaId', cuerpo.content.length ? cuerpo.content[0].id : '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categoría por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias/{{categoriaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias",
+                "{{categoriaId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('categoriaId')) {",
+                  "    console.log('No hay categoriaId en los datos: se saltea este pedido');",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es la categoría pedida', () => {",
+                  "    pm.expect(cuerpo.id).to.eql(Number(pm.collectionVariables.get('categoriaId')));",
+                  "    pm.expect(cuerpo.nombre).to.be.a('string').and.not.empty;",
+                  "    pm.expect(cuerpo.habilitada).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categoría inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias/{{idInexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias",
+                "{{idInexistente}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:categoria-no-encontrada');",
+                  "    pm.expect(problema.status).to.eql(404);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categoría con id que no es número",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias",
+                "abc"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:parametro-invalido');",
+                  "    pm.expect(problema.status).to.eql(400);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categorías con size mayor al máximo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias?size=500",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "500"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:parametro-invalido');",
+                  "    pm.expect(problema.status).to.eql(400);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});",
+                  "pm.test('el detalle nombra el parámetro', () => pm.expect(problema.detail).to.include('size'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categorías con page negativa",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias?page=-1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "-1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:parametro-invalido');",
+                  "    pm.expect(problema.status).to.eql(400);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});",
+                  "pm.test('el detalle nombra el parámetro', () => pm.expect(problema.detail).to.include('page'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Profesionales",
+      "item": [
+        {
+          "name": "Buscar profesionales sin filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es una página con content y page', () => {",
+                  "    pm.expect(cuerpo.content).to.be.an('array');",
+                  "    pm.expect(cuerpo.page).to.include.all.keys('size', 'number', 'totalElements', 'totalPages');",
+                  "});",
+                  "pm.test('cada profesional tiene sus datos principales', () => cuerpo.content.forEach(p => {",
+                  "    pm.expect(p.id).to.be.a('number');",
+                  "    pm.expect(p.categoriaId).to.be.a('number');",
+                  "    pm.expect(p.nombre).to.be.a('string');",
+                  "    pm.expect(p.apellido).to.be.a('string');",
+                  "    pm.expect(p.habilitado).to.be.a('boolean');",
+                  "}));",
+                  "const habilitado = cuerpo.content.find(p => p.habilitado);",
+                  "pm.collectionVariables.set('profesionalId', habilitado ? habilitado.id : '');",
+                  "pm.collectionVariables.set('textoBuscado', habilitado ? habilitado.apellido.substring(0, 3) : '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar profesionales por categoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales?categoriaId={{categoriaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ],
+              "query": [
+                {
+                  "key": "categoriaId",
+                  "value": "{{categoriaId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('categoriaId')) {",
+                  "    console.log('No hay categoriaId en los datos: se saltea este pedido');",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es una página con content y page', () => {",
+                  "    pm.expect(cuerpo.content).to.be.an('array');",
+                  "    pm.expect(cuerpo.page).to.include.all.keys('size', 'number', 'totalElements', 'totalPages');",
+                  "});",
+                  "pm.test('todos son de la categoría pedida', () => cuerpo.content.forEach(p =>",
+                  "    pm.expect(p.categoriaId).to.eql(Number(pm.collectionVariables.get('categoriaId')))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar profesionales por nombre",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales?nombre={{textoBuscado}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "{{textoBuscado}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('textoBuscado')) {",
+                  "    console.log('No hay textoBuscado en los datos: se saltea este pedido');",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es una página con content y page', () => {",
+                  "    pm.expect(cuerpo.content).to.be.an('array');",
+                  "    pm.expect(cuerpo.page).to.include.all.keys('size', 'number', 'totalElements', 'totalPages');",
+                  "});",
+                  "const texto = pm.collectionVariables.get('textoBuscado').toLowerCase();",
+                  "pm.test('encuentra al menos uno', () => pm.expect(cuerpo.content).to.not.be.empty);",
+                  "pm.test('todos tienen el texto en el nombre o el apellido', () => cuerpo.content.forEach(p =>",
+                  "    pm.expect((p.nombre + ' ' + p.apellido).toLowerCase()).to.include(texto)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar profesionales habilitados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales?habilitado=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ],
+              "query": [
+                {
+                  "key": "habilitado",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es una página con content y page', () => {",
+                  "    pm.expect(cuerpo.content).to.be.an('array');",
+                  "    pm.expect(cuerpo.page).to.include.all.keys('size', 'number', 'totalElements', 'totalPages');",
+                  "});",
+                  "pm.test('todos están habilitados', () => cuerpo.content.forEach(p => pm.expect(p.habilitado).to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar profesionales deshabilitados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales?habilitado=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ],
+              "query": [
+                {
+                  "key": "habilitado",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es una página con content y page', () => {",
+                  "    pm.expect(cuerpo.content).to.be.an('array');",
+                  "    pm.expect(cuerpo.page).to.include.all.keys('size', 'number', 'totalElements', 'totalPages');",
+                  "});",
+                  "pm.test('todos están deshabilitados', () => cuerpo.content.forEach(p => pm.expect(p.habilitado).to.be.false));",
+                  "pm.collectionVariables.set('profesionalDeshabilitadoId', cuerpo.content.length ? cuerpo.content[0].id : '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesional con su agenda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales/{{profesionalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales",
+                "{{profesionalId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('profesionalId')) {",
+                  "    console.log('No hay profesionalId en los datos: se saltea este pedido');",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('es el profesional pedido, habilitado', () => {",
+                  "    pm.expect(cuerpo.id).to.eql(Number(pm.collectionVariables.get('profesionalId')));",
+                  "    pm.expect(cuerpo.habilitado).to.be.true;",
+                  "});",
+                  "pm.test('trae la versión del catálogo', () => pm.expect(cuerpo.versionCatalogo).to.be.a('number'));",
+                  "pm.test('trae sus horarios', () => {",
+                  "    pm.expect(cuerpo.horarios).to.be.an('array');",
+                  "    cuerpo.horarios.forEach(h => pm.expect(h).to.include.all.keys('id', 'diaSemana', 'horaInicio', 'horaFin', 'duracionTurnoMinutos'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesional deshabilitado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales/{{profesionalDeshabilitadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales",
+                "{{profesionalDeshabilitadoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('profesionalDeshabilitadoId')) {",
+                  "    console.log('No hay profesionalDeshabilitadoId en los datos: se saltea este pedido');",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:profesional-deshabilitado');",
+                  "    pm.expect(problema.status).to.eql(409);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesional inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales/{{idInexistente}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales",
+                "{{idInexistente}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:profesional-no-encontrado');",
+                  "    pm.expect(problema.status).to.eql(404);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesionales con size cero",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales?size=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:parametro-invalido');",
+                  "    pm.expect(problema.status).to.eql(400);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});",
+                  "pm.test('el detalle nombra el parámetro', () => pm.expect(problema.detail).to.include('size'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesionales con categoriaId que no es número",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profesionales?categoriaId=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profesionales"
+              ],
+              "query": [
+                {
+                  "key": "categoriaId",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:parametro-invalido');",
+                  "    pm.expect(problema.status).to.eql(400);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sincronización",
+      "item": [
+        {
+          "name": "Estado de la sincronización",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sincronizacion/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sincronizacion",
+                "estado"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('informa el estado y la versión local', () => {",
+                  "    pm.expect(cuerpo.estado).to.be.oneOf(['SIN_DATOS', 'SINCRONIZADO', 'RECONSTRUYENDO', 'ERROR']);",
+                  "    pm.expect(cuerpo).to.have.property('versionLocal');",
+                  "    pm.expect(cuerpo).to.have.property('actualizadoEn');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ruta inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "no-existe"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('el Content-Type es problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "const problema = pm.response.json();",
+                  "pm.test('el cuerpo es un ProblemDetail', () => {",
+                  "    pm.expect(problema.type).to.eql('urn:catalogo:error:ruta-no-encontrada');",
+                  "    pm.expect(problema.status).to.eql(404);",
+                  "    pm.expect(problema.title).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.detail).to.be.a('string').and.not.empty;",
+                  "    pm.expect(problema.instance).to.eql(pm.request.url.getPath());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Salud",
+      "item": [
+        {
+          "name": "Salud del servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('el Content-Type es JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('json'));",
+                  "pm.test('el servicio está UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
