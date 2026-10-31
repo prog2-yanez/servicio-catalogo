@@ -2,6 +2,7 @@ package prog2.serviciocatalogo.catalogo.infrastructure.persistence;
 
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import prog2.serviciocatalogo.catalogo.domain.model.ActualizacionDeVersion;
 import prog2.serviciocatalogo.catalogo.domain.model.SnapshotCatalogo;
 import prog2.serviciocatalogo.catalogo.domain.model.VersionCatalogo;
 import prog2.serviciocatalogo.catalogo.domain.ports.out.CatalogoRepository;
@@ -66,5 +67,15 @@ public class CatalogoPersistenceAdapter implements CatalogoRepository {
     @Override
     public void guardarVersion(VersionCatalogo version) {
         versionRepository.save(versionMapper.aEntidad(version));
+    }
+
+    // Los ids son los de la cátedra: si la entidad existe se actualiza, si no se crea. Nunca se borra nada;
+    // una baja llega como enabled = false y se guarda así. El orden respeta las claves foráneas.
+    @Override
+    public void guardarCambios(ActualizacionDeVersion actualizacion) {
+        categoriaRepository.saveAll(actualizacion.categorias().stream().map(categoriaMapper::aEntidad).toList());
+        profesionalRepository.saveAll(
+                actualizacion.profesionales().stream().map(profesionalMapper::aEntidad).toList());
+        horarioRepository.saveAll(actualizacion.horarios().stream().map(horarioMapper::aEntidad).toList());
     }
 }
