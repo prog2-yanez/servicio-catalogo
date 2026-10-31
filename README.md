@@ -80,6 +80,43 @@ El servicio se conecta al servicio central de la cátedra por REST, Redis y Kafk
 - Si alguno se expone, hay que crear otra cuenta técnica y avisar a la cátedra.
 - El servicio de turnos usa la misma cuenta técnica.
 
+### Actualización incremental desde Redis
+
+Además del snapshot inicial, la cátedra publica en Redis cada versión nueva del catálogo. El servicio **solo lee** estas claves (`GET`, `HGET`, `HGETALL`); nunca escribe en ellas.
+
+| Clave | Qué tiene |
+|---|---|
+| `catedra:sync:metadata` | `currentVersion` y `oldestAvailableVersion`, leídas juntas para que no queden desfasadas |
+| `catedra:sync:changes:{version}` | Ids de las categorías, profesionales y horarios que cambiaron en esa versión |
+| `catedra:sync:professional-categories`, `professionals`, `weekly-schedules` | Cada entidad por id, con el mismo JSON que el snapshot |
+
+- Si falta una clave o una entidad, se toma como "no está": quien la pidió decide si reconstruir.
+- Si Redis no responde o un dato tiene un formato inesperado, se informa igual que cuando la cátedra no responde por REST.
+- El health del servicio no depende de Redis: si Redis de la cátedra se cae, el servicio sigue respondiendo con su copia local.
+- Si la versión local quedó más vieja que `oldestAvailableVersion`, no se puede seguir de a una versión y hay que reconstruir con un snapshot.
+
+#### Cómo se aplican las versiones
+
+```
+local = 4, cátedra: actual = 7, más antigua = 4
+→ versión 5 (transacción propia) → local = 5
+→ versión 6 (transacción propia) → local = 6
+→ versión 7 (transacción propia) → local = 7
+```
+
+- Para cada versión primero se lee todo de Redis (`changes:{v}` y cada entidad). Solo si está completo se guarda.
+- Las entidades se guardan por su id de la cátedra: si existen se actualizan, si no se crean, en el orden categorías → profesionales → horarios.
+- Nunca se borra nada: una baja llega como `enabled: false` y se guarda como deshabilitada.
+- Los cambios de la versión y el número de versión se guardan en la misma transacción. Si algo falla a mitad, no queda nada de esa versión y la versión local no avanza; las versiones anteriores ya aplicadas se conservan.
+
+| Resultado | Cuándo |
+|---|---|
+| `AL_DIA` | La copia local ya tenía la última versión |
+| `ACTUALIZADO` | Se aplicaron todas las versiones nuevas |
+| `REQUIERE_RECONSTRUCCION` | No hay copia local, no se pudo leer la metadata, la copia es más vieja que `oldestAvailableVersion`, o falta un `changes:` o una entidad |
+
+Si falla por Redis o la base, el estado de sincronización pasa a `ERROR` y el error se propaga para que el intento se repita.
+
 ## Base de datos con Docker Compose
 
 ```bash
@@ -125,7 +162,7 @@ La respuesta esperada es `{"status":"UP"}`: el servicio está en marcha y llega 
 ./mvnw verify
 ```
 
-Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un PostgreSQL temporal con Testcontainers, por lo que Docker tiene que estar en marcha. No usan `.env` ni la base de desarrollo.
+Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un PostgreSQL y un Redis temporales con Testcontainers, por lo que Docker tiene que estar en marcha. No usan `.env`, la base de desarrollo ni el Redis de la cátedra: los datos de Redis se arman en cada prueba con el mismo formato que publica la cátedra.
 
 ## Base de datos y migraciones
 
@@ -172,7 +209,8 @@ Los IDs son los de la cátedra y las bajas son lógicas (`habilitado = false`).
 | Flyway | Migraciones en archivos SQL numerados, simples de revisar y repetir |
 | Hibernate en modo `validate` | El esquema tiene un único responsable y queda versionado |
 | Puerto local 5433 | Evita el choque con un PostgreSQL local en el 5432 |
-| Pruebas con Testcontainers | Se prueba contra PostgreSQL real, no contra una base simulada |
+| Pruebas con Testcontainers | Se prueba contra PostgreSQL y Redis reales, no contra simulaciones |
+| Spring Data Redis en solo lectura | La cátedra es la dueña de esas claves; el servicio solo consulta |
 | Configuración por variables de entorno | No hay contraseñas ni direcciones en el repositorio |
 | Un solo endpoint de Actuator, sin detalles | No se expone información interna del servicio |
 
