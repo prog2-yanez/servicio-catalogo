@@ -95,6 +95,28 @@ Además del snapshot inicial, la cátedra publica en Redis cada versión nueva d
 - El health del servicio no depende de Redis: si Redis de la cátedra se cae, el servicio sigue respondiendo con su copia local.
 - Si la versión local quedó más vieja que `oldestAvailableVersion`, no se puede seguir de a una versión y hay que reconstruir con un snapshot.
 
+#### Cómo se aplican las versiones
+
+```
+local = 4, cátedra: actual = 7, más antigua = 4
+→ versión 5 (transacción propia) → local = 5
+→ versión 6 (transacción propia) → local = 6
+→ versión 7 (transacción propia) → local = 7
+```
+
+- Para cada versión primero se lee todo de Redis (`changes:{v}` y cada entidad). Solo si está completo se guarda.
+- Las entidades se guardan por su id de la cátedra: si existen se actualizan, si no se crean, en el orden categorías → profesionales → horarios.
+- Nunca se borra nada: una baja llega como `enabled: false` y se guarda como deshabilitada.
+- Los cambios de la versión y el número de versión se guardan en la misma transacción. Si algo falla a mitad, no queda nada de esa versión y la versión local no avanza; las versiones anteriores ya aplicadas se conservan.
+
+| Resultado | Cuándo |
+|---|---|
+| `AL_DIA` | La copia local ya tenía la última versión |
+| `ACTUALIZADO` | Se aplicaron todas las versiones nuevas |
+| `REQUIERE_RECONSTRUCCION` | No hay copia local, no se pudo leer la metadata, la copia es más vieja que `oldestAvailableVersion`, o falta un `changes:` o una entidad |
+
+Si falla por Redis o la base, el estado de sincronización pasa a `ERROR` y el error se propaga para que el intento se repita.
+
 ## Base de datos con Docker Compose
 
 ```bash
