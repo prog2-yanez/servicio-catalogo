@@ -30,6 +30,7 @@ El resto del sistema (servicio de Turnos, app y documentación) vive en reposito
 - JDK 21.
 - Docker con Docker Compose (para la base local y para las pruebas).
 - No hace falta instalar Maven: `./mvnw` descarga la versión correcta. En Windows se usa `mvnw.cmd`.
+- Node.js 18 o superior, solo para correr la colección de Postman con Newman.
 
 ## Configuración
 
@@ -126,6 +127,27 @@ La respuesta esperada es `{"status":"UP"}`: el servicio está en marcha y llega 
 ```
 
 Compila, ejecuta las pruebas y empaqueta el servicio. Las pruebas levantan un PostgreSQL temporal con Testcontainers, por lo que Docker tiene que estar en marcha. No usan `.env` ni la base de desarrollo.
+
+### Pruebas de la API con Postman y Newman
+
+La carpeta `postman/` tiene una colección que prueba la API de punta a punta con el servicio levantado, igual que la usan Turnos y la app.
+
+| Archivo | Qué tiene |
+|---|---|
+| `catalogo.postman_collection.json` | Un pedido por caso: categorías, profesionales (con sus filtros y su agenda), estado de la sincronización y health. Cada endpoint tiene al menos un caso exitoso y uno de error. |
+| `local.postman_environment.json` | `baseUrl` (por defecto `http://localhost:8080`) y `token`, vacío. |
+
+Con el servicio en marcha y el catálogo cargado:
+
+```bash
+npx newman run postman/catalogo.postman_collection.json -e postman/local.postman_environment.json
+```
+
+`npx` descarga Newman la primera vez; no hace falta instalarlo. También se puede importar la colección y el environment en Postman y ejecutarla desde ahí.
+
+- Cada pedido verifica el status, el `Content-Type` y los campos principales; en los errores, que el cuerpo sea un ProblemDetail con su `type`.
+- No hay ids escritos en la colección: el primer listado guarda una categoría y un profesional que existen y los pedidos siguientes los usan. Si el catálogo está vacío, los pedidos que necesitan un id se saltean con un aviso.
+- El token se manda solo si el environment lo trae. Si hace falta uno, se completa en una copia local del environment, sin versionarla.
 
 ## Base de datos y migraciones
 
