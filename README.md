@@ -117,6 +117,21 @@ local = 4, cátedra: actual = 7, más antigua = 4
 
 Si falla por Redis o la base, el estado de sincronización pasa a `ERROR` y el error se propaga para que el intento se repita.
 
+### Reconstrucción con el snapshot
+
+Cuando la actualización devuelve `REQUIERE_RECONSTRUCCION`, el servicio reemplaza su copia entera por el snapshot de la cátedra. La sincronización completa (`SincronizarCatalogoService`) es:
+
+```
+actualizar de a una versión
+├── AL_DIA o ACTUALIZADO     → listo
+└── REQUIERE_RECONSTRUCCION  → pedir el snapshot por REST → reemplazar la copia → RECONSTRUIDO
+```
+
+- El estado pasa a `RECONSTRUYENDO` mientras dura y a `SINCRONIZADO` al terminar.
+- El borrado de la copia anterior, la carga del snapshot y el número de versión se guardan en una sola transacción. Si algo falla, queda la copia anterior entera, el estado pasa a `ERROR` y el error se propaga para que se reintente.
+- Si falla la actualización por Redis o la base, no se reconstruye: se reintenta más tarde.
+- Al arrancar con la base vacía se usa la misma reconstrucción. Si en ese momento la cátedra no responde, el servicio arranca igual, sin datos.
+
 ## Base de datos con Docker Compose
 
 ```bash
