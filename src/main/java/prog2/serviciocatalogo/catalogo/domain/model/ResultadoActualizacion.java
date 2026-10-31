@@ -10,5 +10,8 @@ public enum ResultadoActualizacion {
     ACTUALIZADO,
 
     // No se puede seguir de a una versión: faltan datos o versiones, hay que pedir el snapshot.
-    REQUIERE_RECONSTRUCCION
+    REQUIERE_RECONSTRUCCION,
+
+    // No se podía seguir de a una versión y se reemplazó la copia local por el snapshot.
+    RECONSTRUIDO
 }
