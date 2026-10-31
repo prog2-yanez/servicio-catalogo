@@ -132,6 +132,24 @@ actualizar de a una versión
 - Si falla la actualización por Redis o la base, no se reconstruye: se reintenta más tarde.
 - Al arrancar con la base vacía se usa la misma reconstrucción. Si en ese momento la cátedra no responde, el servicio arranca igual, sin datos.
 
+### Avisos de versión nueva por Kafka
+
+La cátedra publica un `CatalogUpdated` en el topic del catálogo cada vez que hay una versión nueva. El servicio lo escucha y sincroniza:
+
+```
+llega CatalogUpdated
+├── JSON roto, otro eventType o sin eventId/newVersion → se deja en el log y se descarta
+├── eventId ya procesado                               → se descarta sin efectos
+└── eventId nuevo → sincronizar (actualizar o reconstruir) → guardar el eventId → confirmar el mensaje
+```
+
+- Kafka entrega cada mensaje **al menos una vez**, así que puede llegar repetido. Los `eventId` procesados se guardan en la tabla `evento_procesado` y los repetidos se descartan.
+- El `eventId` se guarda **después** de sincronizar. Si el servicio se cae en el medio, Kafka vuelve a entregar el aviso y la sincronización da `AL_DIA`, así que no se pierde ni se duplica nada.
+- El mensaje se confirma recién cuando terminó bien. Si la sincronización falla, se reintenta 3 veces con 5 segundos de espera; si sigue fallando, se deja en el log y se pasa al siguiente. No se pierden cambios: la próxima sincronización lleva la copia hasta la última versión.
+- Se ignoran los campos desconocidos del mensaje, así la cátedra puede agregar campos sin romper el servicio.
+- Si las tres variables `CATEDRA_KAFKA_*` no están completas, el listener no se crea y el servicio funciona igual con REST y Redis. El health no depende de Kafka.
+- El servicio **solo lee** el topic de la cátedra; nunca publica en él.
+
 ## Base de datos con Docker Compose
 
 ```bash
@@ -212,6 +230,7 @@ El dominio, las entidades JPA y los DTO son clases distintas, conectadas con map
 | `profesional` | Profesionales, con su categoría |
 | `horario_semanal` | Franjas de atención semanales de cada profesional |
 | `version_catalogo` | Versión del catálogo aplicada localmente (una sola fila) |
+| `evento_procesado` | `eventId` de los avisos de Kafka ya procesados, para descartar los repetidos |
 
 Los IDs son los de la cátedra y las bajas son lógicas (`habilitado = false`).
 
