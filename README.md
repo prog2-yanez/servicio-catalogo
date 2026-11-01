@@ -202,13 +202,25 @@ Authorization: Bearer <token que devolvió turnos>
 - Se valida la firma (HS256 con la clave compartida `JWT_SECRETO`), el vencimiento, el emisor (`servicio-turnos`) y el rol `ROLE_USER`, que viaja en el claim `auth`.
 - No hay sesión ni cookies: cada pedido se valida solo con su token. Por eso no aplica CSRF.
 - `JWT_SECRETO` tiene que ser **la misma clave que usa turnos**. Si falta o tiene menos de 32 caracteres, el catálogo no arranca, para no quedar funcionando sin poder validar tokens. Si se cambia, hay que cambiarla en los dos servicios a la vez.
-- El JWT técnico de la cátedra (`CATEDRA_JWT`) es otra identidad: lo usa solo el backend para hablar con la cátedra y no sirve para consultar el catálogo.
 
 | Situación | Respuesta |
 |---|---|
 | Sin token, o con otro esquema que no es `Bearer` | `401 no-autenticado` |
 | Firma incorrecta, vencido, de otro emisor o que no es un JWT | `401 token-invalido` |
 | Token válido sin `ROLE_USER` | `403 sin-permiso` |
+
+### Dos identidades que no se mezclan
+
+| | JWT de usuario | JWT técnico de la cátedra |
+|---|---|---|
+| Quién lo emite | Turnos, al registrarse o iniciar sesión | La cátedra, al dar de alta la cuenta técnica |
+| Quién lo usa | La app, en cada pedido al catálogo y a turnos | Solo el backend, para hablar con la cátedra |
+| Firma, emisor y rol | HS256 con `JWT_SECRETO`, `servicio-turnos`, `ROLE_USER` | Clave de la cátedra, sin nuestro emisor, `ROLE_STUDENT_CLIENT` |
+| Duración | 1 hora | 1 año |
+
+El JWT técnico (`CATEDRA_JWT`) no sirve para consultar el catálogo, y lo frenan tres barreras independientes: la firma (no está firmado con `JWT_SECRETO`), el emisor (no es `servicio-turnos`) y el rol (no es `ROLE_USER`). Aunque alguna fallara, las otras lo siguen rechazando.
+
+Tampoco sale nunca hacia la app: el catálogo lo usa solo como encabezado de los pedidos que le hace a la cátedra, ninguna respuesta lo incluye, y Actuator publica solo `health`, así que la configuración no se puede leer. La prueba `IdentidadesSeparadasTests` demuestra las dos cosas.
 
 ## Pruebas
 
