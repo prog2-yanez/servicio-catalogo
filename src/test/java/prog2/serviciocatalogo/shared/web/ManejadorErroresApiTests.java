@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import jakarta.validation.constraints.Max;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,9 @@ import prog2.serviciocatalogo.catalogo.domain.exception.CategoriaNoEncontradaExc
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalNoEncontradoException;
 
+// Prueba la lógica del controlador; la seguridad tiene sus propias pruebas.
 @WebMvcTest(controllers = ManejadorErroresApiTests.ControladorDePrueba.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(ManejadorErroresApiTests.ControladorDePrueba.class)
 class ManejadorErroresApiTests {
 
