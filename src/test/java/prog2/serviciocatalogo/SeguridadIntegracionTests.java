@@ -91,6 +91,17 @@ class SeguridadIntegracionTests {
         verificarProblema(resultado, HttpStatus.UNAUTHORIZED, "no-autenticado");
     }
 
+    // Sin CORS_ORIGENES_PERMITIDOS ningún navegador de otro origen puede usar el catálogo.
+    @Test
+    void sinOrigenesConfiguradosUnNavegadorDeOtroOrigenSeRechaza() {
+        String valido = token(CLAVE_DE_PRUEBA, "servicio-turnos", "ROLE_USER", 3600);
+        MvcTestResult resultado = mvc.get().uri("/api/v1/categorias")
+                .header(HttpHeaders.ORIGIN, "https://panel.ejemplo.com")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + valido).exchange();
+
+        verificarProblema(resultado, HttpStatus.FORBIDDEN, "origen-no-permitido");
+    }
+
     @Test
     void elHealthSiguePublico() {
         assertThat(mvc.get().uri("/actuator/health").exchange()).hasStatusOk();
