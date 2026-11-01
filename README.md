@@ -49,6 +49,7 @@ cp .env.example .env
 | `SPRING_DATASOURCE_URL` | URL de conexión del servicio, por ejemplo `jdbc:postgresql://localhost:5433/catalogo` |
 | `SPRING_DATASOURCE_USERNAME` | Usuario con el que se conecta el servicio |
 | `SPRING_DATASOURCE_PASSWORD` | Contraseña con la que se conecta el servicio |
+| `JWT_SECRETO` | Clave para validar el JWT de los usuarios. Tiene que ser la misma que en turnos (ver [Autenticación](#autenticación)) |
 
 - El puerto de `SPRING_DATASOURCE_URL` tiene que coincidir con `DB_PORT`.
 - El puerto por defecto es `5433` para no chocar con una instalación local de PostgreSQL, que usa `5432`.
@@ -190,6 +191,25 @@ curl http://localhost:8080/actuator/health
 
 La respuesta esperada es `{"status":"UP"}`: el servicio está en marcha y llega a la base. Es el único endpoint de Actuator que se expone y no muestra detalles internos.
 
+## Autenticación
+
+Todas las APIs del catálogo exigen el JWT de un usuario, salvo `GET /actuator/health`. El catálogo no tiene cuentas propias: el token lo emite el servicio de turnos cuando el usuario se registra o inicia sesión, y el catálogo solo lo valida (ADR 0003).
+
+```
+Authorization: Bearer <token que devolvió turnos>
+```
+
+- Se valida la firma (HS256 con la clave compartida `JWT_SECRETO`), el vencimiento, el emisor (`servicio-turnos`) y el rol `ROLE_USER`, que viaja en el claim `auth`.
+- No hay sesión ni cookies: cada pedido se valida solo con su token. Por eso no aplica CSRF.
+- `JWT_SECRETO` tiene que ser **la misma clave que usa turnos**. Si falta o tiene menos de 32 caracteres, el catálogo no arranca, para no quedar funcionando sin poder validar tokens. Si se cambia, hay que cambiarla en los dos servicios a la vez.
+- El JWT técnico de la cátedra (`CATEDRA_JWT`) es otra identidad: lo usa solo el backend para hablar con la cátedra y no sirve para consultar el catálogo.
+
+| Situación | Respuesta |
+|---|---|
+| Sin token, o con otro esquema que no es `Bearer` | `401 no-autenticado` |
+| Firma incorrecta, vencido, de otro emisor o que no es un JWT | `401 token-invalido` |
+| Token válido sin `ROLE_USER` | `403 sin-permiso` |
+
 ## Pruebas
 
 ```bash
@@ -217,7 +237,17 @@ npx newman run postman/catalogo.postman_collection.json -e postman/local.postman
 
 - Cada pedido verifica el status, el `Content-Type` y los campos principales; en los errores, que el cuerpo sea un ProblemDetail con su `type`.
 - No hay ids escritos en la colección: el primer listado guarda una categoría y un profesional que existen y los pedidos siguientes los usan. Si el catálogo está vacío, los pedidos que necesitan un id se saltean con un aviso.
-- El token se manda solo si el environment lo trae. Si hace falta uno, se completa en una copia local del environment, sin versionarla.
+- Hace falta un token de usuario, porque el catálogo exige JWT. Se obtiene iniciando sesión en turnos y se le pasa a Newman sin guardarlo en ningún archivo:
+
+  ```bash
+  TOKEN=$(curl -s -X POST http://localhost:8081/api/v1/cuenta/login \
+    -H "Content-Type: application/json" \
+    -d '{"username": "<tu usuario>", "password": "<tu contraseña>"}' | jq -r .id_token)
+  npx newman run postman/catalogo.postman_collection.json -e postman/local.postman_environment.json \
+    --env-var "token=$TOKEN"
+  ```
+
+  En Postman, el token se completa en una copia local del environment, sin versionarla. El token vence en una hora.
 
 ## Base de datos y migraciones
 
