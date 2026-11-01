@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -18,7 +19,9 @@ import prog2.serviciocatalogo.catalogo.domain.model.Pagina;
 import prog2.serviciocatalogo.catalogo.domain.model.PedidoPagina;
 import prog2.serviciocatalogo.catalogo.domain.ports.in.ConsultarCategoriasUseCase;
 
+// Prueba la lógica del controlador; la seguridad tiene sus propias pruebas.
 @WebMvcTest(controllers = CategoriaController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class CategoriaControllerTests {
 
     private static final Instant CREADO = Instant.parse("2026-07-01T12:00:00Z");
