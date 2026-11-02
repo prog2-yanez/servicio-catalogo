@@ -1,6 +1,7 @@
 package prog2.serviciocatalogo.catalogo.infrastructure.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -71,5 +72,14 @@ class CategoriaControllerTests {
     @Test
     void unaPaginaNegativaDevuelve400() {
         assertThat(mvc.get().uri("/api/v1/categorias?page=-1").exchange()).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void unIdQueNoEsPositivoDevuelve400() {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/categorias/0").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.detail").asString().contains("id", "debe ser mayor a 0");
+        verifyNoInteractions(consultarCategorias);
     }
 }

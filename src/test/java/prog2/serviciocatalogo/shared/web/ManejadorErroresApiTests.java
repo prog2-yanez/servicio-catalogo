@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -57,6 +58,18 @@ class ManejadorErroresApiTests {
         MvcTestResult resultado = mvc.get().uri("/prueba/numero?valor=abc").exchange();
 
         verificarProblema(resultado, HttpStatus.BAD_REQUEST, "parametro-invalido", "/prueba/numero");
+        assertThat(resultado).bodyJson().extractingPath("$.title").isEqualTo("Parámetro inválido");
+        assertThat(resultado).bodyJson().extractingPath("$.detail")
+                .isEqualTo("El parámetro 'valor' tiene que ser un número entero");
+    }
+
+    @Test
+    void parametroObligatorioFaltanteDevuelve400NombrandoElParametro() {
+        MvcTestResult resultado = mvc.get().uri("/prueba/numero").exchange();
+
+        verificarProblema(resultado, HttpStatus.BAD_REQUEST, "parametro-invalido", "/prueba/numero");
+        assertThat(resultado).bodyJson().extractingPath("$.detail")
+                .isEqualTo("Falta el parámetro obligatorio 'valor'");
     }
 
     @Test
@@ -71,6 +84,29 @@ class ManejadorErroresApiTests {
         MvcTestResult resultado = mvc.get().uri("/no-existe").exchange();
 
         verificarProblema(resultado, HttpStatus.NOT_FOUND, "ruta-no-encontrada", "/no-existe");
+        assertThat(resultado).bodyJson().extractingPath("$.title").isEqualTo("Ruta no encontrada");
+        assertThat(resultado).bodyJson().extractingPath("$.detail").isEqualTo("No existe la ruta /no-existe");
+    }
+
+    @Test
+    void metodoNoPermitidoDevuelve405EnEspanolYMantieneElHeaderAllow() {
+        MvcTestResult resultado = mvc.post().uri("/prueba/numero?valor=1").exchange();
+
+        verificarProblema(resultado, HttpStatus.METHOD_NOT_ALLOWED, "metodo-no-permitido", "/prueba/numero");
+        assertThat(resultado).bodyJson().extractingPath("$.title").isEqualTo("Método no permitido");
+        assertThat(resultado).bodyJson().extractingPath("$.detail")
+                .isEqualTo("El método POST no está permitido en esta ruta");
+        assertThat(resultado).hasHeader(HttpHeaders.ALLOW, "GET");
+    }
+
+    // Para los errores que no tienen un texto propio, Spring no deja su detalle en inglés.
+    @Test
+    void otroErrorDeSpringSaleConTituloYDetalleEnEspanol() {
+        MvcTestResult resultado = mvc.get().uri("/prueba/solo-json").contentType(MediaType.TEXT_PLAIN).exchange();
+
+        verificarProblema(resultado, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "error-http", "/prueba/solo-json");
+        assertThat(resultado).bodyJson().extractingPath("$.title").isEqualTo("Tipo de contenido no soportado");
+        assertThat(resultado).bodyJson().extractingPath("$.detail").isEqualTo("El pedido no se pudo procesar (415)");
     }
 
     @Test
@@ -120,6 +156,11 @@ class ManejadorErroresApiTests {
         @GetMapping("/prueba/pagina")
         String pagina(@RequestParam @Max(100) int size) {
             return String.valueOf(size);
+        }
+
+        @GetMapping(path = "/prueba/solo-json", consumes = MediaType.APPLICATION_JSON_VALUE)
+        String soloJson() {
+            return "ok";
         }
 
         @GetMapping("/prueba/falla")

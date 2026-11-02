@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -85,7 +87,67 @@ class ProfesionalControllerTests {
 
         assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(resultado).bodyJson().extractingPath("$.type").isEqualTo("urn:catalogo:error:parametro-invalido");
+        assertThat(resultado).bodyJson().extractingPath("$.title").isEqualTo("Parámetro inválido");
+        assertThat(resultado).bodyJson().extractingPath("$.detail")
+                .isEqualTo("El parámetro 'habilitado' tiene que ser true o false");
         verifyNoInteractions(buscarProfesionales);
+    }
+
+    @Test
+    void unaCategoriaQueNoEsNumeroDevuelve400NombrandoElParametro() {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales?categoriaId=uno").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.detail")
+                .isEqualTo("El parámetro 'categoriaId' tiene que ser un número entero");
+        verifyNoInteractions(buscarProfesionales);
+    }
+
+    @Test
+    void unaCategoriaQueNoEsPositivaDevuelve400() {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales?categoriaId=0").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.detail").asString()
+                .contains("categoriaId", "debe ser mayor a 0");
+        verifyNoInteractions(buscarProfesionales);
+    }
+
+    @Test
+    void unNombreDeMasDe100CaracteresDevuelve400() {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales?nombre=" + "a".repeat(101)).exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.detail").asString()
+                .contains("nombre", "100 caracteres o menos");
+        verifyNoInteractions(buscarProfesionales);
+    }
+
+    @Test
+    void unNombreDe100CaracteresSeAcepta() {
+        when(buscarProfesionales.buscar(any(), any())).thenReturn(new Pagina<>(List.of(), 0, 20, 0));
+
+        assertThat(mvc.get().uri("/api/v1/profesionales?nombre=" + "a".repeat(100)).exchange()).hasStatusOk();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-3"})
+    void unIdQueNoEsPositivoDevuelve400(String id) {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales/" + id).exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.detail").asString().contains("id", "debe ser mayor a 0");
+        verifyNoInteractions(consultarProfesional);
+    }
+
+    @Test
+    void unIdQueNoEsNumeroDevuelve400() {
+        MvcTestResult resultado = mvc.get().uri("/api/v1/profesionales/abc").exchange();
+
+        assertThat(resultado).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(resultado).bodyJson().extractingPath("$.detail")
+                .isEqualTo("El parámetro 'id' tiene que ser un número entero");
+        verifyNoInteractions(consultarProfesional);
     }
 
     @Test

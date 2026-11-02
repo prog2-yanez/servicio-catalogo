@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -13,12 +14,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import prog2.serviciocatalogo.catalogo.domain.exception.ProfesionalDeshabilitadoException;
 import prog2.serviciocatalogo.catalogo.domain.exception.RecursoNoEncontradoException;
 
@@ -78,22 +83,73 @@ public class ManejadorErroresApi extends ResponseEntityExceptionHandler {
                         .map(error -> resultado.getMethodParameter().getParameterName() + ": "
                                 + error.getDefaultMessage()))
                 .collect(Collectors.joining("; "));
-        ProblemDetail problema = ProblemDetail.forStatusAndDetail(estado, "Parámetros inválidos. " + detalle);
-        return handleExceptionInternal(ex, problema, headers, estado, pedido);
+        return conDetalle(ex, "Parámetros inválidos. " + detalle, headers, estado, pedido);
     }
 
-    // Completa type e instance en los errores que Spring MVC ya convierte a ProblemDetail.
+    // Por ejemplo habilitado=abc: se nombra el parámetro y lo que se esperaba, sin repetir el valor recibido.
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(
+            TypeMismatchException ex, HttpHeaders headers, HttpStatusCode estado, WebRequest pedido) {
+        String detalle = "El parámetro '" + ex.getPropertyName() + "' tiene que ser "
+                + tipoEsperado(ex.getRequiredType());
+        return conDetalle(ex, detalle, headers, estado, pedido);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatusCode estado,
+            WebRequest pedido) {
+        return conDetalle(ex, "Falta el parámetro obligatorio '" + ex.getParameterName() + "'",
+                headers, estado, pedido);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleNoResourceFoundException(
+            NoResourceFoundException ex, HttpHeaders headers, HttpStatusCode estado, WebRequest pedido) {
+        return conDetalle(ex, "No existe la ruta /" + ex.getResourcePath(), headers, estado, pedido);
+    }
+
+    // Los headers que arma Spring (Allow) se mantienen; solo cambia el texto.
+    @Override
+    protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpHeaders headers, HttpStatusCode estado,
+            WebRequest pedido) {
+        return conDetalle(ex, "El método " + ex.getMethod() + " no está permitido en esta ruta",
+                headers, estado, pedido);
+    }
+
+    // Completa type, title e instance en los errores que Spring MVC ya convierte a ProblemDetail. Si Spring dejó su
+    // propio detalle (en inglés), lo reemplaza por uno genérico en español.
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception ex, Object body, HttpHeaders headers, HttpStatusCode estado, WebRequest pedido) {
         ResponseEntity<Object> respuesta = super.handleExceptionInternal(ex, body, headers, estado, pedido);
         if (respuesta != null && respuesta.getBody() instanceof ProblemDetail problema) {
             problema.setType(URI.create(PREFIJO_TIPO + codigoSegunEstado(estado)));
+            problema.setTitle(tituloSegunEstado(estado));
+            if (ex instanceof ErrorResponse deSpring && problema == deSpring.getBody()) {
+                problema.setDetail("El pedido no se pudo procesar (" + estado.value() + ")");
+            }
             if (pedido instanceof ServletWebRequest servlet) {
                 problema.setInstance(URI.create(servlet.getRequest().getRequestURI()));
             }
         }
         return respuesta;
+    }
+
+    private ResponseEntity<Object> conDetalle(
+            Exception ex, String detalle, HttpHeaders headers, HttpStatusCode estado, WebRequest pedido) {
+        return handleExceptionInternal(ex, ProblemDetail.forStatusAndDetail(estado, detalle), headers, estado, pedido);
+    }
+
+    private static String tipoEsperado(Class<?> tipo) {
+        if (tipo == Boolean.class || tipo == boolean.class) {
+            return "true o false";
+        }
+        if (tipo == Long.class || tipo == long.class || tipo == Integer.class || tipo == int.class) {
+            return "un número entero";
+        }
+        return "un valor válido";
     }
 
     private static String codigoSegunEstado(HttpStatusCode estado) {
@@ -102,6 +158,17 @@ public class ManejadorErroresApi extends ResponseEntityExceptionHandler {
             case 404 -> "ruta-no-encontrada";
             case 405 -> "metodo-no-permitido";
             default -> "error-http";
+        };
+    }
+
+    private static String tituloSegunEstado(HttpStatusCode estado) {
+        return switch (estado.value()) {
+            case 400 -> "Parámetro inválido";
+            case 404 -> "Ruta no encontrada";
+            case 405 -> "Método no permitido";
+            case 406 -> "Formato no aceptado";
+            case 415 -> "Tipo de contenido no soportado";
+            default -> estado.is5xxServerError() ? "Error interno" : "Pedido inválido";
         };
     }
 
