@@ -2,6 +2,8 @@ package prog2.serviciocatalogo.catalogo.infrastructure.web;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,8 +32,9 @@ public class ProfesionalController {
 
     @GetMapping
     public PaginaResponse<ProfesionalResumenResponse> buscar(
-            @RequestParam(required = false) Long categoriaId,
-            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) @Positive(message = "debe ser mayor a 0") Long categoriaId,
+            @RequestParam(required = false)
+            @Size(max = 100, message = "debe tener 100 caracteres o menos") String nombre,
             @RequestParam(required = false) Boolean habilitado,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "debe ser 0 o mayor") int page,
             @RequestParam(defaultValue = "20")
@@ -44,7 +47,7 @@ public class ProfesionalController {
 
     // Lo usa Turnos antes de dar un turno: datos vigentes, horarios habilitados y versión del catálogo.
     @GetMapping("/{id}")
-    public ProfesionalConAgendaResponse obtener(@PathVariable long id) {
+    public ProfesionalConAgendaResponse obtener(@PathVariable @Positive(message = "debe ser mayor a 0") long id) {
         return ProfesionalConAgendaResponse.desde(consultarProfesional.obtenerConAgenda(id));
     }
 }

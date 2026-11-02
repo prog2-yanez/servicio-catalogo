@@ -50,6 +50,7 @@ cp .env.example .env
 | `SPRING_DATASOURCE_USERNAME` | Usuario con el que se conecta el servicio |
 | `SPRING_DATASOURCE_PASSWORD` | Contraseña con la que se conecta el servicio |
 | `JWT_SECRETO` | Clave para validar el JWT de los usuarios. Tiene que ser la misma que en turnos (ver [Autenticación](#autenticación)) |
+| `CORS_ORIGENES_PERMITIDOS` | Orígenes de navegador que pueden llamar al catálogo, separados por coma. Vacía por defecto (ver [CORS](#cors)) |
 
 - El puerto de `SPRING_DATASOURCE_URL` tiene que coincidir con `DB_PORT`.
 - El puerto por defecto es `5433` para no chocar con una instalación local de PostgreSQL, que usa `5432`.
@@ -221,6 +222,43 @@ Authorization: Bearer <token que devolvió turnos>
 El JWT técnico (`CATEDRA_JWT`) no sirve para consultar el catálogo, y lo frenan tres barreras independientes: la firma (no está firmado con `JWT_SECRETO`), el emisor (no es `servicio-turnos`) y el rol (no es `ROLE_USER`). Aunque alguna fallara, las otras lo siguen rechazando.
 
 Tampoco sale nunca hacia la app: el catálogo lo usa solo como encabezado de los pedidos que le hace a la cátedra, ninguna respuesta lo incluye, y Actuator publica solo `health`, así que la configuración no se puede leer. La prueba `IdentidadesSeparadasTests` demuestra las dos cosas.
+
+## CORS
+
+CORS es una regla que aplica el navegador: no deja que una página de un dominio llame a otro salvo que el servidor lo permita. La app Android y el servicio de turnos no son navegadores, así que no lo necesitan. Por eso, por defecto, **ningún origen de navegador está permitido**.
+
+- Si algún día hace falta un cliente web, su origen se agrega en `CORS_ORIGENES_PERMITIDOS` (por ejemplo `https://panel.ejemplo.com`; varios, separados por coma).
+- Aun así, solo se permite `GET` y el header `Authorization`: el catálogo no tiene endpoints que escriban.
+- Un pedido de un origen no permitido responde `403 origen-no-permitido`. Los pedidos sin `Origin` (la app y turnos) no cambian.
+
+## Validación y errores
+
+Los parámetros se validan en los controllers, antes de llegar a los casos de uso. Un dato inválido responde `400 parametro-invalido` y el `detail` nombra el parámetro que falló.
+
+| Parámetro | Regla |
+|---|---|
+| `page` | 0 o mayor |
+| `size` | Entre 1 y 100 |
+| `categoriaId` | Número entero mayor a 0 |
+| `nombre` | Hasta 100 caracteres |
+| `habilitado` | `true` o `false` |
+| `{id}` de profesionales y categorías | Número entero mayor a 0 |
+
+Todos los errores son un ProblemDetail (RFC 7807) con `type` `urn:catalogo:error:<código>`, y el `title` y el `detail` en español. Por ejemplo, `GET /api/v1/profesionales?habilitado=abc`:
+
+```json
+{
+  "type": "urn:catalogo:error:parametro-invalido",
+  "title": "Parámetro inválido",
+  "status": 400,
+  "detail": "El parámetro 'habilitado' tiene que ser true o false",
+  "instance": "/api/v1/profesionales"
+}
+```
+
+- Las respuestas no muestran trazas ni detalles internos: un error inesperado responde `500 error-interno` con un texto genérico y la traza queda solo en el log.
+- El `detail` no repite el valor recibido.
+- Los errores propios de Spring (ruta inexistente, método no permitido, tipo de contenido no soportado) también salen con este formato y en español.
 
 ## Pruebas
 

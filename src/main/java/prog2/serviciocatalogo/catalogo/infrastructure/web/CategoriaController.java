@@ -2,6 +2,7 @@ package prog2.serviciocatalogo.catalogo.infrastructure.web;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,7 +33,7 @@ public class CategoriaController {
     }
 
     @GetMapping("/{id}")
-    public CategoriaResponse obtener(@PathVariable long id) {
+    public CategoriaResponse obtener(@PathVariable @Positive(message = "debe ser mayor a 0") long id) {
         return CategoriaResponse.desde(consultarCategorias.obtener(id));
     }
 }
