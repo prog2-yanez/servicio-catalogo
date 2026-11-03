@@ -75,7 +75,7 @@ El servicio se conecta al servicio central de la cátedra por REST, Redis y Kafk
 | `CATEDRA_REDIS_USERNAME` | `integration.redisUsername` |
 | `CATEDRA_REDIS_PASSWORD` | `integration.redisPassword` |
 | `CATEDRA_KAFKA_BOOTSTRAP_SERVERS` | `integration.kafkaBootstrapServers` |
-| `CATEDRA_KAFKA_CONSUMER_GROUP` | `integration.kafkaConsumerGroupId` |
+| `CATEDRA_KAFKA_CONSUMER_GROUP` | `integration.kafkaConsumerGroupId` (el grupo con el que el catálogo lee los avisos de versión nueva) |
 | `CATEDRA_KAFKA_TOPIC_CATALOGO` | `integration.kafkaCatalogTopic` |
 
 - Si se pierde el JWT, `POST /api/authenticate` con el mismo usuario y contraseña devuelve uno nuevo y la configuración vigente.
