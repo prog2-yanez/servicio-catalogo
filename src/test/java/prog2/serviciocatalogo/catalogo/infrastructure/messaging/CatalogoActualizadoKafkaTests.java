@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -40,10 +41,19 @@ class CatalogoActualizadoKafkaTests {
     private KafkaTemplate<String, String> kafka;
 
     @Autowired
+    private KafkaListenerEndpointRegistry listeners;
+
+    @Autowired
     private JpaEventoProcesadoRepository eventosProcesados;
 
     @MockitoBean
     private SincronizarCatalogoUseCase sincronizarCatalogo;
+
+    // Sin groupId, Spring usaría el id del listener ("catalogo-actualizado") como grupo.
+    @Test
+    void elListenerUsaElGrupoAsignadoPorLaCatedra() {
+        assertThat(listeners.getListenerContainer("catalogo-actualizado").getGroupId()).isEqualTo("grupo-de-prueba");
+    }
 
     @Test
     void elMismoEventoRecibidoDosVecesSincronizaUnaSolaVez() {

@@ -30,7 +30,9 @@ public class CatalogoActualizadoListener {
     }
 
     // El offset se confirma recién cuando este método termina bien; si tira una excepción, Kafka reintenta.
-    @KafkaListener(id = "catalogo-actualizado", topics = "${catedra.kafka.topic-catalogo}")
+    // El grupo es el que asigna la cátedra; sin groupId, Spring usaría el id del listener como grupo.
+    @KafkaListener(id = "catalogo-actualizado", groupId = "${catedra.kafka.consumer-group}",
+            topics = "${catedra.kafka.topic-catalogo}")
     public void recibir(String mensaje) {
         leer(mensaje).ifPresent(procesarAviso::procesar);
     }
