@@ -58,8 +58,8 @@ class InicializarCatalogoIntegracionTests {
     // La cátedra se simula; la base y la transacción son las reales.
     @BeforeEach
     void preparar() {
-        inicializarCatalogo = new InicializarCatalogoService(
-                catalogoRepository, catedraClient, aplicarSnapshot, registroSincronizacion);
+        inicializarCatalogo = new InicializarCatalogoService(catalogoRepository,
+                new ReconstruirCatalogoService(catedraClient, aplicarSnapshot, registroSincronizacion));
         horarios.deleteAllInBatch();
         profesionales.deleteAllInBatch();
         categorias.deleteAllInBatch();
